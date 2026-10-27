@@ -1,0 +1,71 @@
+# 深度PTC模式（dsh-deep-ptc-mode）
+
+[English](README.md)
+
+DeepSeek Harness 的自定义 Agent preset，以内置 **PTC 模式**为基础。工具面完全一致：同样的 `run_code` 程序化工具、同样的工具清单与子 agent 配置、同样的 plan 模式与压缩策略；只把 `dsh-persona` 的人设换成一份工作契约，补上 1017 模型在 PTC 下常见的三个行为短板。
+
+## 它和内置 PTC 的差别
+
+| 问题 | 深度PTC模式的做法 |
+| --- | --- |
+| 埋头干活、全程不吭声，最后一次性交工 | 每次 `run_code` 前用一两句说明要检查、修改或验证什么；关键节点（摸清现状、定下方案、改完一批、验证之后、改变方向）给稍长的更新；连续两三个工具调用没有出声就必须停下来汇报 |
+| 为了省 token 不用工具、不验证 | 明确“工具调用是工作本身，不是成本”，不为省 token 跳过读取、搜索、命令或验证；相关调用批量放进一个 `run_code`，按任务需要验证、不过度扩张 |
+| 需求不明确时思考过少、直接交工 | 有歧义、有用户自己的取舍、或只能靠猜意图时，先问再动手；用 `ask_user_question` 提 1–3 个带选项的问题，推荐项在前；单独提问的程序给足 `timeoutMs`（如 600000），避免默认 120 秒超时把等待截断 |
+
+另外保留两条边界，避免矫枉过正：
+
+- 需求清楚、单步就能做完的事不需要确认，不要问用户已经授权的操作；
+- plan 模式里仍按 plan 模式的提问规则走，不被这套契约覆盖。
+
+## 安装
+
+要求 DSH `>= 0.2.1-rc.3`，见[兼容性](#兼容性)。
+
+**从 GitHub 安装（推荐）**：桌面端打开 **插件 → 安装插件**，粘贴：
+
+```text
+github:lishize20040802-rgb/dsh-deep-ptc-mode
+```
+
+或在带 `plugin_manager` 工具的会话里：
+
+```js
+plugin_manager({ action: "install_bundle", target: "github:lishize20040802-rgb/dsh-deep-ptc-mode" })
+```
+
+**从本地目录安装**（开发用）：
+
+```js
+plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-mode" })
+```
+
+安装后：新任务会在模式选择器的“自定义”分组里出现「深度PTC模式」，也可以把它设为新任务默认模式；已在运行的会话保持不变（preset 在会话创建时绑定）。同一个 bundle 重复安装即为更新。
+
+## 兼容性
+
+`package.json` 声明：
+
+```json
+"engines": { "dsh": ">=0.2.1-rc.3" }
+```
+
+这是**下限，不是精确锁定**。DSH 用 SemVer 范围判定插件要求，并且包含预发布版本：`0.2.1-rc.4`、`0.2.1`、`0.2.2-rc.1`、`0.3.0` 以及之后的所有版本都满足，而 `0.2.1-rc.2`、`0.2.0` 这类更旧的运行时会在安装前就被拒绝。写成精确版本（`"0.2.1-rc.3"`）会把之后的所有版本——包括该版本自己的补丁版和后续 rc——全部挡在门外。
+
+## 文件
+
+- `cordis.patch.yml` — 一条 `@deepseek-ai/dsh-agent-preset` 声明：`config.id` 为 `deep-ptc`，展示名「深度PTC模式」，`order: 5`，子插件清单照抄内置 PTC preset。
+- `package.json` — bundle 清单：`dsh.bundle.patch` 指向上面的补丁，`engines.dsh` 是兼容性下限。
+
+## 设计取舍
+
+- 行为契约放在 `dsh-persona` 的 `suffix`（系统提示词 order 10200，第一方指导之后），而不是 prefix，确保它是最接近模型回答时刻的约束；prefix 只保留身份与“在台面上工作”的一句话。
+- 没有另写插件做机械化的进度注入：1017 的问题是表达习惯而不是能力缺失，提示词契约 + PTC 的批量调用节奏足够，也避免额外运行时负担。
+- 没有改动部署级 `system-prompt`，因此只影响选择该 preset 的会话。
+
+## 卸载
+
+`plugin_manager` 的 `remove_bundle`，目标为本 bundle 的包名 `dsh-deep-ptc-mode`。删掉本目录不会立刻影响已安装副本，但更新与重装会失败，建议按顺序处理。
+
+## 许可证
+
+MIT，见 [LICENSE](LICENSE)。

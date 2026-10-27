@@ -1,0 +1,36 @@
+{
+  "name": "dsh-deep-ptc-mode",
+  "version": "1.0.0",
+  "description": "Deep PTC agent preset for DeepSeek Harness: the built-in PTC tool surface plus visible progress, confident tool use, and early clarification.",
+  "type": "module",
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "agent-preset",
+    "ptc"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lishize20040802-rgb/dsh-deep-ptc-mode.git"
+  },
+  "homepage": "https://github.com/lishize20040802-rgb/dsh-deep-ptc-mode#readme",
+  "bugs": {
+    "url": "https://github.com/lishize20040802-rgb/dsh-deep-ptc-mode/issues"
+  },
+  "files": [
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md"
+  ],
+  "engines": {
+    "node": ">=24",
+    "dsh": ">=0.2.1-rc.3"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
