@@ -1,5 +1,9 @@
 # dsh-deep-ptc-mode
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![npm](https://img.shields.io/npm/v/dsh-deep-ptc-mode.svg)](https://www.npmjs.com/package/dsh-deep-ptc-mode)
+[![DeepSeek Harness](https://img.shields.io/badge/DSH-0.2.1%2B-4B6BFB)](https://github.com/deepseek-ai/deepseek-harness)
+
 [简体中文](README.zh.md)
 
 **Deep PTC mode** (「深度PTC模式」) is a custom agent preset for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). It keeps the built-in **PTC** preset's surface exactly — the same programmatic `run_code` tooling, the same tool list, sub-agent wiring, plan mode and compaction — and replaces only the persona with a working contract: visible progress, confident tool use, early clarification, and DeepSeek's unlimited token budget.
@@ -21,7 +25,13 @@ Two boundaries keep it from over-correcting: a clear single-step request needs n
 
 Requires DSH `>= 0.2.1-rc.3` — see [Compatibility](#compatibility).
 
-**From GitHub (recommended).** In the desktop app open **Plugins → Install plugin** and paste:
+**From npm (recommended once published).** The same bundle is published as `dsh-deep-ptc-mode`:
+
+```js
+plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.1.0" })
+```
+
+**From GitHub.** In the desktop app open **Plugins → Install plugin** and paste:
 
 ```text
 github:lishize20040802-rgb/dsh-deep-ptc-mode
@@ -55,6 +65,7 @@ This is a **floor, not an exact pin**. DSH checks plugin requirements as SemVer 
 
 - `cordis.patch.yml` — one `@deepseek-ai/dsh-agent-preset` declaration: `config.id` `deep-ptc`, display name 「深度PTC模式」, `order: 5`, the child-plugin list copied from the built-in PTC preset, and a persona `prefix`/`suffix` carrying the identity, the unlimited-budget statement, and the behavior contract.
 - `package.json` — the bundle manifest: `dsh.bundle.patch` points at the patch above, and `engines.dsh` is the compatibility floor.
+- `assets/icon.png` — the storefront/market icon.
 
 ## Design notes
 
@@ -66,6 +77,10 @@ This is a **floor, not an exact pin**. DSH checks plugin requirements as SemVer 
 ## Uninstall
 
 Use `plugin_manager` `remove_bundle` with the bundle package name `dsh-deep-ptc-mode`. Deleting this directory does not immediately affect an already-installed copy, but updates and re-installs will fail — handle them in order.
+
+## Open source
+
+Deep PTC mode is open source under the MIT License. The repository is the source of every published artifact; issues, pull requests and forks are welcome at [github.com/lishize20040802-rgb/dsh-deep-ptc-mode](https://github.com/lishize20040802-rgb/dsh-deep-ptc-mode).
 
 ## License
 

@@ -10,6 +10,7 @@
     "ptc"
   ],
   "license": "MIT",
+  "author": "lishize20040802-rgb",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lishize20040802-rgb/dsh-deep-ptc-mode.git"
@@ -21,7 +22,8 @@
   "files": [
     "cordis.patch.yml",
     "README.md",
-    "README.zh.md"
+    "README.zh.md",
+    "assets/icon.png"
   ],
   "engines": {
     "node": ">=24",

@@ -1,5 +1,9 @@
 # 深度PTC模式（dsh-deep-ptc-mode）
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![npm](https://img.shields.io/npm/v/dsh-deep-ptc-mode.svg)](https://www.npmjs.com/package/dsh-deep-ptc-mode)
+[![DeepSeek Harness](https://img.shields.io/badge/DSH-0.2.1%2B-4B6BFB)](https://github.com/deepseek-ai/deepseek-harness)
+
 [English](README.md)
 
 DeepSeek Harness 的自定义 Agent preset，以内置 **PTC 模式**为基础。工具面完全一致：同样的 `run_code` 程序化工具、同样的工具清单与子 agent 配置、同样的 plan 模式与压缩策略；只把 `dsh-persona` 的人设换成一份工作契约：持续汇报进度、放心使用工具、需求不明确时先问清楚，并写明 DeepSeek 为这个模式提供无限 token 预算。
@@ -24,7 +28,13 @@ DeepSeek Harness 的自定义 Agent preset，以内置 **PTC 模式**为基础�
 
 要求 DSH `>= 0.2.1-rc.3`，见[兼容性](#兼容性)。
 
-**从 GitHub 安装（推荐）**：桌面端打开 **插件 → 安装插件**，粘贴：
+**从 npm 安装（发布后推荐）**：同一个 bundle 已发布为 `dsh-deep-ptc-mode`：
+
+```js
+plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.1.0" })
+```
+
+**从 GitHub 安装**：桌面端打开 **插件 → 安装插件**，粘贴：
 
 ```text
 github:lishize20040802-rgb/dsh-deep-ptc-mode
@@ -58,6 +68,7 @@ plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-m
 
 - `cordis.patch.yml` — 一条 `@deepseek-ai/dsh-agent-preset` 声明：`config.id` 为 `deep-ptc`，展示名「深度PTC模式」，`order: 5`，子插件清单照抄内置 PTC preset，persona 的 `prefix`/`suffix` 承载身份、无限预算声明与行为契约。
 - `package.json` — bundle 清单：`dsh.bundle.patch` 指向上面的补丁，`engines.dsh` 是兼容性下限。
+- `assets/icon.png` — 插件市场/卡片图标。
 
 ## 设计取舍
 
@@ -69,6 +80,10 @@ plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-m
 ## 卸载
 
 `plugin_manager` 的 `remove_bundle`，目标为本 bundle 的包名 `dsh-deep-ptc-mode`。删掉本目录不会立刻影响已安装副本，但更新与重装会失败，建议按顺序处理。
+
+## 开源
+
+深度PTC模式以 MIT 许可证开源，仓库是所有发布产物的来源；欢迎在 [github.com/lishize20040802-rgb/dsh-deep-ptc-mode](https://github.com/lishize20040802-rgb/dsh-deep-ptc-mode) 提 issue、PR 或 fork。
 
 ## 许可证
 
