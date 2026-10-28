@@ -6,7 +6,18 @@
 
 [English](README.md)
 
-DeepSeek Harness 的自定义 Agent preset，以内置 **PTC 模式**为基础。工具面完全一致：同样的 `run_code` 程序化工具、同样的工具清单与子 agent 配置、同样的 plan 模式与压缩策略；只把 `dsh-persona` 的人设换成一份工作契约：持续汇报进度、放心使用工具、需求不明确时先问清楚，并写明 DeepSeek 为这个模式提供无限 token 预算。
+## 简介
+
+**深度PTC模式**（Deep PTC mode）是 DeepSeek Harness 的开源 Agent preset，面向「希望模型全程可见地把能力用满、而不是省着用 token」的会话。
+
+它以内置 **PTC** preset 为底座：工具面完全一致——同样的 `run_code` 程序化工具、同样的工具清单与子 agent 配置、同样的 plan 模式与压缩策略；只把 `dsh-persona` 的人设换成一份工作契约：
+
+- **进度可见**：每次 `run_code` 前用一句话说明要做什么，关键节点给稍长的更新，不长时间闷头干活。
+- **不为 token 焦虑**：读取、搜索、命令和验证是工作本身，不是该省的成本。
+- **先问再猜**：有歧义、或取舍属于用户时，动手前先提 1–3 个具体问题。
+- **DeepSeek 无限 token 预算**：明写预算无限，并把它转化成深度与验证——同时用护栏挡住注水、啰嗦的进度更新和上下文撑爆。
+
+新建任务时在模式选择器里选「深度PTC模式」即可。工具、`run_code` 工具面、plan 模式与压缩策略都和内置 PTC 完全一致；不影响其他 preset，也不改部署级 system prompt。
 
 ## 它和内置 PTC 的差别
 

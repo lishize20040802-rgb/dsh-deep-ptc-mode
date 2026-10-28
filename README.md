@@ -6,7 +6,18 @@
 
 [简体中文](README.zh.md)
 
-**Deep PTC mode** (「深度PTC模式」) is a custom agent preset for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). It keeps the built-in **PTC** preset's surface exactly — the same programmatic `run_code` tooling, the same tool list, sub-agent wiring, plan mode and compaction — and replaces only the persona with a working contract: visible progress, confident tool use, early clarification, and DeepSeek's unlimited token budget.
+## Introduction
+
+**Deep PTC mode** (「深度PTC模式」) is an open-source agent preset for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), for sessions where the model should work visibly and spend its full capability instead of rationing tokens.
+
+It keeps the built-in **PTC** preset's surface exactly — the same programmatic `run_code` tooling, the same tool list, sub-agent wiring, plan mode and compaction — and replaces only the persona with a working contract:
+
+- **Visible progress.** One short sentence before every `run_code`; longer updates at real milestones; no silent stretches.
+- **No token anxiety.** Reads, searches, commands and verification are the work, not a cost to cut.
+- **Ask instead of guess.** Ambiguous or user-owned decisions get one to three concrete questions before the work starts.
+- **DeepSeek's unlimited token budget.** The persona says the budget is unlimited and turns it into depth and verification — with guardrails against padding, rambling updates and context overflow.
+
+Pick **深度PTC模式** in the mode picker when starting a new task. Same tools, same `run_code` surface, same plan mode and compaction as the built-in PTC preset; other presets and the deployment-level system prompt are untouched.
 
 ## What changes compared with the built-in PTC preset
 
