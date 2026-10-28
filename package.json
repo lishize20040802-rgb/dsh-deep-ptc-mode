@@ -1,7 +1,7 @@
 {
   "name": "dsh-deep-ptc-mode",
-  "version": "1.0.0",
-  "description": "Deep PTC agent preset for DeepSeek Harness: the built-in PTC tool surface plus visible progress, confident tool use, and early clarification.",
+  "version": "1.1.0",
+  "description": "Deep PTC agent preset for DeepSeek Harness: the built-in PTC tool surface plus visible progress, confident tool use, an unlimited token budget, and early clarification.",
   "type": "module",
   "keywords": [
     "dsh-plugin",
