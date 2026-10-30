@@ -93,3 +93,12 @@ npm pack
 - `test/`、`scripts/check.mjs`、`compatibility.json`：回归与上游差异检查。
 
 卸载使用插件管理器的 `remove_bundle`，目标为 `dsh-deep-ptc-mode`。本地 link 安装直接依赖源目录，应先卸载再删除目录。
+
+## 作者
+
+深度PTC模式由 [lishize20040802-rgb](https://github.com/lishize20040802-rgb) 编写与维护。
+
+- 问题与需求：[GitHub Issues](https://github.com/lishize20040802-rgb/dsh-deep-ptc-mode/issues)
+- 邮箱：lishize20040802@gmail.com
+
+上游 DeepSeek Harness 本身的问题请提到 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)。

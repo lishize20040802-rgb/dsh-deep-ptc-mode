@@ -82,3 +82,12 @@ The checker parses `!!js` as data, compares nested upstream settings and fails o
 Main files: `cordis.patch.yml` is the settings entry; `lib/index.mjs` manages revisions; `lib/model.mjs` builds isolated execution configurations; `lib/executor.mjs` adapts WSL/Zsh; `lib/terminal.mjs` provides the Zsh tool; `lib/client.js` owns the bilingual settings card; `lib/preset.json` contains the persona and official PTC template.
 
 Uninstall with `plugin_manager` action `remove_bundle`, target `dsh-deep-ptc-mode`. Local link installations depend on their source directory: uninstall before deleting it.
+
+## Author
+
+Deep PTC mode is written and maintained by [lishize20040802-rgb](https://github.com/lishize20040802-rgb).
+
+- Issues and feature requests: [GitHub issues](https://github.com/lishize20040802-rgb/dsh-deep-ptc-mode/issues)
+- Email: lishize20040802@gmail.com
+
+Bugs in DeepSeek Harness itself belong upstream, at [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness).
