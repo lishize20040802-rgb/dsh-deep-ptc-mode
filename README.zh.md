@@ -1,117 +1,95 @@
-# 深度PTC模式（dsh-deep-ptc-mode）
+# 深度 PTC 模式
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![npm](https://img.shields.io/npm/v/dsh-deep-ptc-mode.svg)](https://www.npmjs.com/package/dsh-deep-ptc-mode)
-[![DeepSeek Harness](https://img.shields.io/badge/DSH-0.2.1%2B-4B6BFB)](https://github.com/deepseek-ai/deepseek-harness)
+[English](README.md) · MIT · 当前版本：**1.3.0**
 
-[English](README.md)
+DeepSeek Harness 的协作型 PTC preset：持续汇报、先查证再澄清、控制改动范围、充分验证并及时收尾。1.3.0 增加可以自由选择的执行环境。
 
-## 简介
+## 选择 WSL、PowerShell 或 macOS 工具
 
-**深度PTC模式**（Deep PTC mode）是 DeepSeek Harness 的开源 Agent preset，面向「希望模型全程可见地把能力用满、而不是省着用 token」的会话。
+安装并加载后，打开 **设置 → 插件 → 深度 PTC**，选择执行环境并保存，再新建一个「深度PTC模式」会话。
 
-它以内置 **PTC** preset 为底座：工具面完全一致——同样的 `run_code` 程序化工具、同样的工具清单与子 agent 配置、同样的 plan 模式与压缩策略；只把 `dsh-persona` 的人设换成一份工作契约：
+| 选项 | 宿主 | 实际执行方式 / 模型工具 |
+| --- | --- | --- |
+| 自动 | Windows / macOS / Linux | Windows 选 PowerShell，macOS 选 Zsh，Linux 选 Bash |
+| WSL Bash | Windows | `wsl.exe ... --exec bash -lc`，工具名 `bash` |
+| PowerShell | Windows | Harness 官方原生 PowerShell 执行器，工具名 `pwsh` |
+| Zsh | macOS / Linux | macOS 用 `/bin/zsh -lc`；Linux 用已安装的 `zsh`；工具名 `zsh` |
+| 原生 Bash | macOS / Linux | Harness 官方 Bash 执行器，工具名 `bash` |
 
-- **进度可见**：每次 `run_code` 前用一句话说明要做什么，关键节点给稍长的更新，不长时间闷头干活。
-- **不为 token 焦虑**：读取、搜索、命令和验证是工作本身，不是该省的成本。
-- **问清语义**：不认识的名称或指代、相差很大的技术路线、来源与环境、用户心里预设的做事方式，一律先问用户——问的是「意思」，不是「许可」；每次 1–3 个具体问题，带选项、推荐项在前。
-- **先收敛再动手**：答案回来先复述目标、做法、验收标准与「明确不做」的清单，范围不越界，不顺手加功能或重构。
-- **按耗时定计划**：≤5 分钟的任务内部计划、直接执行；5–20 分钟把计划写给用户但不求批准、立即开工；>20 分钟输出计划并请求批准。plan 模式的规则始终优先。
-- **等待不阻塞**：不 sleep、不把一次前台调用挂很久。长命令、构建、测试或外部任务放后台并记下 job id，然后结束回合；任务完成通知或用户消息都会立刻把模型唤醒，等待期间用户随时可以改方向。没有任务会自己完成时用 `schedule_create` 设提醒，而不是定时器等。
-- **该拆就拆**：小而线性的任务一个人做完；真正互相独立、探索面大、可并行验证或需要独立复核时，开子 agent 或智能体团队。
-- **DeepSeek 无限 token 预算**：明写预算无限，并把它转化成深度与验证——同时用护栏挡住注水、啰嗦的进度更新和上下文撑爆。
+不适用于宿主的选项会禁用，运行时配置也会拒绝这些选择。WSL 发行版留空时使用 Windows 默认发行版，也可填写 `Ubuntu` 等已安装名称。Linux 上选择 Zsh 前需要安装 Zsh。
 
-新建任务时在模式选择器里选「深度PTC模式」即可。工具、`run_code` 工具面、plan 模式与压缩策略都和内置 PTC 完全一致；不影响其他 preset，也不改部署级 system prompt。
+**选择会改变实际执行器和模型看到的命令语法，不只改工具名称。** 执行器隔离在本 preset 中，不修改全局 shell，也不影响其他 preset。保存设置后，新会话使用新版本；已有会话和后台任务继续使用创建时的环境。切换环境时请新建会话，避免同一任务中途换方言。
 
-## 它和内置 PTC 的差别
+WSL 命令使用 Linux/POSIX 语法；文件工具和 `workdir` 仍用 Windows 宿主路径。执行器用 `--cd` 进入目录，发行版、目录和命令分别作为 argv 传递，不额外拼接 shell 字符串。WSL 内的 PATH、代理等由所选发行版的登录 shell 配置决定，Windows 环境变量不会全部自动变成 Linux 环境变量。
 
-| 问题 | 深度PTC模式的做法 |
-| --- | --- |
-| 埋头干活、全程不吭声，最后一次性交工 | 每次 `run_code` 前用一句话说明要检查、修改或验证什么；关键节点（摸清现状、定下方案、改完一批、验证之后、改变方向）给稍长的更新；连续两三个工具调用没有出声就必须停下来汇报 |
-| 为了省 token 不用工具、不验证 | 明确“工具调用是工作本身，不是成本”，不为省 token 跳过读取、搜索、命令或验证；相关调用批量放进一个 `run_code`，按任务需要验证、不过度扩张 |
-| 猜用户到底是什么意思 | 问的是「意思」，不是「许可」。不认识的 preset、插件、产品、代号；说不清的「上次那个」；几条会导向不同工作量的技术路线；不确定哪个仓库、环境或版本才是真源；或者不知道用户心里是否已有预设的做事方式——都在动手前先问用户。用项目搜索去猜用户自己的术语，被明确禁止。提问走 `run_code` 里的 `ask_user_question`，每次 1–3 个，带选项、推荐项在前，并给足 `timeoutMs`（如 600000）避免等待被截断。用户答「不知道」也是一种答案，此时由模型自行决定；用户答了，答案优先于模型推断。 |
-| 做得比要求多 | 范围属于意图的一部分：只做满足已确认标准的最小改动，不追加用户没要的功能、重构或抽象，验证按改动量匹配而不是另起一个工程。觉得需要多做时先问再扩，计划里写明「明确不做」什么。 |
-| 不管什么任务都用同一种开工方式 | 按预计完成时间（含验证）分档：5 分钟以内内部计划后直接做；5–20 分钟把计划写给用户、立即开工、不等批准，并随时接受用户改方向；20 分钟以上先出计划、请求批准再动手。估计跨档就换档，边界向上取整；plan 模式里 `exit_plan_mode` 的批准规则始终优先，plan 模式外只有 >20 分钟档才用 `ask_user_question` 兜底请求批准。 |
-| 什么都自己扛 | 小而线性的任务自己做完；当工作能拆成真正独立的几块、大范围探索会撑爆上下文、几部分可以并行检查或验证、或者需要一个独立读者来发现模型自己看不见的问题时，才开子 agent 或智能体团队。开团队就当 lead：每个成员一个明确职责、完整 brief、共享任务板上写清互不重叠的写入范围、不重复成员的活、结果收齐并验证后再汇报。 |
-| 用 sleep 或长时间前台调用硬等 | 不靠 sleep 等待，也不挂一个很久的前台调用。长命令、构建、测试或外部任务放后台、记下 job id、结束回合：任务完成通知或用户消息都会立刻把模型唤醒，等待期间用户随时可以改方向。没有任务会自己完成时用 `schedule_create` 设提醒，而不是定时器。 |
-| 把「无限预算」读成可以注水或撑爆上下文 | 同一段既给预算也设上限：不注水、不重复、不写废话；进度更新除真正的里程碑外只留一句话；「长度取决于用户需要据此做什么，而不是你干了多少活」。单次请求的上下文窗口仍然是有限的——工具输出保持有界，压缩、结果裁剪与子 agent 把长任务关在窗口内 |
+### 沙箱边界
 
-身份也写清楚了：模型在 DeepSeek（深度求索）工作，这个模式下的 token 预算是无限的——「spend it on the work, never ration it」（把预算花在工作上，不要省着用）。契约把这句口号翻译成具体行为，所以「无限」带来的是更深的答案，而不是更长的废话。
+原生 PowerShell、Bash 和 Zsh 继续使用 Harness 的沙箱、审批和进程管理。WSL 跨越 Windows/Linux 边界，目前仅支持宿主已经授权的 `danger-full-access` 执行；`read-only` 或 `workspace-write` 调用在启动命令前失败。插件不会自行升权、改变默认权限或悄悄换 shell。
 
-另外保留三条边界，避免矫枉过正：
+## 工作规则
 
-- 改动范围内的文件本身就是工作，不需要征求许可；
-- 靠检查就能确认的事实（代码在哪、当前行为如何、装了哪个版本）自己查，不拿来问；
-- plan 模式里仍按 plan 模式的提问规则走，不被这套契约覆盖。
+- **进度可见：** 开始前说明目的，在发现、方案变化、委派和验证等节点汇报。活跃工作约 30–60 秒没有更新时，在工具步骤边界补充一句；连续的简单读取可以合并。
+- **先查证，再问真正的歧义：** 可在相关安装目录或工作区做一轮有限的只读定位；仍有多个候选、私人术语无法解释或关键偏好影响路线时及时询问。搜索不替用户定义意图。
+- **计划和授权分开：** 小任务内部计划后执行；复杂任务展示简短计划并继续。耗时增加不使先前授权失效；范围或关键决策变化时才重新确认。显式 plan mode 的只读和批准规则优先。
+- **充分验证并停止：** 查当前证据，验证改动触及的行为和边界。验收标准满足、相关检查通过且关键疑点解决后交付；出现新变化或失败才重新检查。
+- **按任务生命周期等待：** 构建和测试可作为完成型 job；服务器启动后检查就绪并继续验收；外部 task id 不被假定为 Harness job。收齐相关结果后才能声称完成。
+- **按需委派：** 只在任务确实可拆分或需要独立复核时使用。按实际工具提供的消息、job 或团队等待渠道收集结果，不硬性要求不存在的工具名。
 
-用户一旦回答，答案优先于模型的推断、模型的偏好和本文件的默认值。
+本模式表达充分使用能力的工作偏好，不授予额外 token，不修改模型或计费，也不保证模型每次完全遵守提示词。效果需要实际任务评测。
 
-## 安装
+## 安装和升级
 
-要求 DSH `>= 0.2.1-rc.3`，见[兼容性](#兼容性)。
+要求 Node `>=24`、DSH `>=0.2.1-rc.5`。1.3.0 已用 Windows 桌面端 rc.5 做 WSL/PowerShell 命令验证。macOS/Zsh 分支做了配置、工具挂载与参数测试，尚未在 macOS 真机执行。
 
-**从 npm 安装（发布后推荐）**：同一个 bundle 已发布为 `dsh-deep-ptc-mode`：
+本地目录或构建产物可通过插件管理器安装：
 
 ```js
-plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.2.0" })
-```
-
-**从 GitHub 安装**：桌面端打开 **插件 → 安装插件**，粘贴：
-
-```text
-github:lishize20040802-rgb/dsh-deep-ptc-mode
-```
-
-或在带 `plugin_manager` 工具的会话里：
-
-```js
-plugin_manager({ action: "install_bundle", target: "github:lishize20040802-rgb/dsh-deep-ptc-mode" })
-```
-
-**从本地目录安装**（开发用）：
-
-```js
+plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.3.0" })
+// 也可从本地目录或安装包安装：
 plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-mode" })
+// 或 target: "C:\\path\\to\\dsh-deep-ptc-mode-1.3.0.tgz"
 ```
 
-安装后：新任务会在模式选择器的“自定义”分组里出现「深度PTC模式」，也可以把它设为新任务默认模式；已在运行的会话保持不变（preset 在会话创建时绑定）。同一个 bundle 重复安装即为更新。
+GitHub 地址：`github:lishize20040802-rgb/dsh-deep-ptc-mode`。该地址安装远端实际内容；本地升级不会自动发布到 GitHub/npm。
 
-## 兼容性
+已有旧版时，安装同一个 bundle 即更新。从只有 persona 的旧版切到 1.3.0，需要宿主重新加载插件；桌面端若未出现设置卡片，可重新打开应用。安装不会将其他新任务的默认模式改为深度 PTC。
 
-`package.json` 声明：
+设置持久化到当前 profile 的 Cordis patch：
 
-```json
-"engines": { "dsh": ">=0.2.1-rc.3" }
+```yaml
+- id: deep-ptc-settings
+  config:
+    environment: wsl        # auto | wsl | powershell | zsh | bash
+    wslDistribution: Ubuntu # 留空为 Windows 默认发行版
 ```
 
-这是**下限，不是精确锁定**。DSH 用 SemVer 范围判定插件要求，并且包含预发布版本：`0.2.1-rc.4`、`0.2.1`、`0.2.2-rc.1`、`0.3.0` 以及之后的所有版本都满足，而 `0.2.1-rc.2`、`0.2.0` 这类更旧的运行时会在安装前就被拒绝。写成精确版本（`"0.2.1-rc.3"`）会把之后的所有版本——包括该版本自己的补丁版和后续 rc——全部挡在门外。
+优先使用界面保存，宿主会处理版本冲突和原子配置写入。
 
-## 文件
+## 兼容性与维护
 
-- `cordis.patch.yml` — 一条 `@deepseek-ai/dsh-agent-preset` 声明：`config.id` 为 `deep-ptc`，展示名「深度PTC模式」，`order: 5`，子插件清单与官方 PTC 逐行一致，persona 的 `prefix`/`suffix` 承载身份、无限预算声明与行为契约（进度可见、无限预算、放心用工具、先问语义、按耗时定计划、等待不阻塞、按需委派七段）。
-- `package.json` — bundle 清单：`dsh.bundle.patch` 指向上面的补丁，`engines.dsh` 是兼容性下限。
-- `assets/icon.png` — 插件市场/卡片图标。
+1.3.0 将上游 rc.5 的 23 项 PTC 配置保存为 `lib/preset.json`。除 persona 外，模板与该上游一致；运行时仅将两个互斥 shell 工具替换为一个带 `shell` 隔离的执行组。计划模式、压缩、裁剪、网页与子代理等其他配置保持一致。
 
-## 设计取舍
+本版增加了必要的宿主/浏览器代码，不再是仅靠 persona 的声明式插件。`compatibility.json` 记录已验证上游和 fixture 哈希；`engines` 是安装下限，不能证明之后所有宿主都经过测试。
 
-- 行为契约放在 `dsh-persona` 的 `suffix`（系统提示词 order 10200，第一方指导之后），而不是 prefix，确保它是最接近模型回答时刻的约束；prefix 只保留身份与“在台面上工作”的一句话，并补一句本模式 token 预算无限。
-- 子插件清单与官方 PTC 保持逐行一致：已对照随 dsh-web-app **0.2.1-rc.5** 安装的 PTC 声明（同为 23 行、配置相同、plan 模式原文相同、被禁用的 workflow 与 plugin-manager 工具也保持禁用）。本插件只替换 persona，不删减、不改写官方 PTC 的任何能力。
-- 提问段把「用户拥有的语义」和「可检查的事实」分开：只说「多问」会让模型为一条 `read` 就能确定的事打断用户；只说「先查再问」又会重演「用户提到的名词不认识就去搜」的原毛病。规则是：意思归用户，机制归工具。
-- 按耗时分档是有意取代两种极端——每次改动都先出计划，以及一整天的活在没有任何计划下开干——让计划强度匹配风险。分档按预计完成时间（含验证）判断；边界向上取整，因为一次批准比按错计划做一大段更便宜；plan 模式里 `exit_plan_mode` 的批准始终优先于这些分档，`ask_user_question` 只在 plan 模式外、20 分钟以上档兜底请求批准。
-- 等待不阻塞只靠契约实现，不需要新增运行时插件：`run_code` 里的 sleep 或一次长时间前台轮询会把这一步卡住，而 steering 消息只在步骤边界被领取，所以契约禁止长时间在轮内等待——长活放后台并结束回合，任务完成通知和用户下一条消息都会立刻恢复 agent；没有任务会完成时用 `schedule_create`。这样不新增宿主服务、不改 agent loop，也能把控制权留给用户。
-- 委派写成条件式且不加插件行。Agent Team 工具（`spawn_teammate`、`team_task_*`、`wait_agent` 等）是宿主侧实验 bundle 提供的，preset 无权 mount；没有该 bundle 的宿主上，preset 自带的 `subagent` / `subagent_fork` 行仍是委派面。契约因此只说「用目录里真实列出的委派工具」，开了团队就当好 lead。
-- 无限预算段放在工具使用规则之前，因为它改变的是模型愿意花多少力气；同段还带两条护栏——不注水、单次上下文有限——避免「无限」被读成允许啰嗦或撑爆上下文。只写「token 无限」的提示词会把「省」的毛病换成「废话多」的毛病。
-- 没有另写插件做机械化的进度注入：1017 的问题是表达习惯而不是能力缺失，提示词契约 + PTC 的批量调用节奏足够，也避免额外运行时负担。
-- 1.2.0 新增三件事：按工作形状决定是否委派；先问语义——名称、指代、路线、来源、做事流程——再动手，并用范围收敛防止「用多干活代替问清楚」；按预计耗时决定计划强度，只有估计超过 20 分钟的工作才等批准；以及等待不阻塞——用后台任务和结束回合代替 sleep，用户消息或任务完成都会立刻把模型唤醒。
+```sh
+npm ci
+npm run check
+npm test
+npm run check:upstream -- /path/to/ptc.patch.yml
+npm pack
+```
 
-## 卸载
+检查器不会执行 YAML 的 `!!js`；比较官方插件结构、plan mode 和压缩等嵌套配置，发现差异即失败并要求复核。测试覆盖平台选择、命令边界、受限 WSL 拒绝、设置表单原子保存及并发版本约束，以及 preset 版本更换与清理。真实任务评测仍应记录成功率、无必要提问、范围控制、后台收尾和耗时。
 
-`plugin_manager` 的 `remove_bundle`，目标为本 bundle 的包名 `dsh-deep-ptc-mode`。删掉本目录不会立刻影响已安装副本，但更新与重装会失败，建议按顺序处理。
+## 文件和卸载
 
-## 开源
+- `cordis.patch.yml`：宿主设置入口。
+- `lib/index.mjs`：配置 schema、preset 注册和版本切换。
+- `lib/model.mjs`：平台选择、参数、隔离配置和环境说明。
+- `lib/executor.mjs`：复用官方进程/沙箱语义的 WSL/Zsh 执行器。
+- `lib/terminal.mjs`：复用官方终端工具，提供 Zsh 方言与工具名。
+- `lib/client.js`：中英文设置卡片。
+- `lib/preset.json`：persona 和上游 PTC 模板。
+- `test/`、`scripts/check.mjs`、`compatibility.json`：回归与上游差异检查。
 
-深度PTC模式以 MIT 许可证开源，仓库是所有发布产物的来源；欢迎在 [github.com/lishize20040802-rgb/dsh-deep-ptc-mode](https://github.com/lishize20040802-rgb/dsh-deep-ptc-mode) 提 issue、PR 或 fork。
-
-## 许可证
-
-MIT，见 [LICENSE](LICENSE)。
+卸载使用插件管理器的 `remove_bundle`，目标为 `dsh-deep-ptc-mode`。本地 link 安装直接依赖源目录，应先卸载再删除目录。

@@ -1,112 +1,84 @@
-# dsh-deep-ptc-mode
+# Deep PTC mode
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![npm](https://img.shields.io/npm/v/dsh-deep-ptc-mode.svg)](https://www.npmjs.com/package/dsh-deep-ptc-mode)
-[![DeepSeek Harness](https://img.shields.io/badge/DSH-0.2.1%2B-4B6BFB)](https://github.com/deepseek-ai/deepseek-harness)
+[中文](README.zh.md) · MIT · **1.3.0**
 
-[简体中文](README.zh.md)
+A collaborative DeepSeek Harness PTC preset with visible progress, focused fact lookup, semantic clarification, scoped work, evidence-based verification and lifecycle-aware background jobs.
 
-## Introduction
+## Choose an execution environment
 
-**Deep PTC mode** (「深度PTC模式」) is an open-source agent preset for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), for sessions where the model should work visibly and spend its full capability instead of rationing tokens.
+Open **Settings → Plugins → Deep PTC**, choose an environment, save, and create a new **深度PTC模式** session.
 
-It keeps the built-in **PTC** preset's surface exactly — the same programmatic `run_code` tooling, the same tool list, sub-agent wiring, plan mode and compaction — and replaces only the persona with a working contract:
+| Selection | Host | Executor / tool |
+| --- | --- | --- |
+| Automatic | Windows / macOS / Linux | PowerShell on Windows, Zsh on macOS, Bash on Linux |
+| WSL Bash | Windows | Explicit `wsl.exe ... --exec bash -lc`, tool `bash` |
+| PowerShell | Windows | Official native PowerShell executor, tool `pwsh` |
+| Zsh | macOS / Linux | `/bin/zsh -lc` on macOS; installed `zsh` on Linux; tool `zsh` |
+| Native Bash | macOS / Linux | Official Bash executor, tool `bash` |
 
-- **Visible progress.** One short sentence before every `run_code`; longer updates at real milestones; no silent stretches.
-- **No token anxiety.** Reads, searches, commands and verification are the work, not a cost to cut.
-- **Ask what it means.** Unknown names, unresolved referents, competing technical routes, unclear sources and unstated expectations about process get asked about first — the model asks the user, not a search engine. One to three concrete questions, options with the recommended one first.
-- **Converge, then build.** The answers turn into a one-paragraph plan with success criteria and an explicit "not doing" list; scope does not grow past what was agreed.
-- **Plan by size.** Five minutes or less is planned internally and executed. Five to twenty minutes gets the plan written out, then work starts without waiting for approval. More than twenty minutes gets the plan written out and approved before any work. Plan mode's own rules still win.
-- **Wait without blocking.** Never sleeps and never holds one long foreground call. A long command, build, test run or external job runs in the background with its job id noted, and the turn ends; a finished job or a user message wakes the model at once, so the user can redirect it while it waits. When no job will finish, `schedule_create` provides the reminder instead of a timer.
-- **Delegate when the work splits.** Small sequential work stays with one agent; genuinely independent pieces, broad exploration, parallel verification or an independent reviewer can become subagents or an Agent Team.
-- **DeepSeek's unlimited token budget.** The persona says the budget is unlimited and turns it into depth and verification — with guardrails against padding, rambling updates and context overflow.
+Unsupported choices are disabled according to the Host, not the browser OS, and rejected by the Host schema. Leave the WSL distribution blank for the Windows default or enter an installed name such as `Ubuntu`. Zsh must be installed when selected on Linux.
 
-Pick **深度PTC模式** in the mode picker when starting a new task. Same tools, same `run_code` surface, same plan mode and compaction as the built-in PTC preset; other presets and the deployment-level system prompt are untouched.
+The selection changes the real executor, tool contract and environment instructions. Executors live in a preset-local `shell` realm, independent of the global shell and other presets. Settings register a new preset revision for new sessions. Existing sessions and background jobs retain their revision: create a new session to change environment safely.
 
-## What changes compared with the built-in PTC preset
+WSL source uses Linux/POSIX syntax, while file tools and `workdir` use Windows host paths. Distribution, cwd and source are distinct argv entries passed through `wsl.exe --cd`; no surrounding shell string is assembled. Login-shell configuration in the selected distribution controls Linux PATH and proxy setup. Windows environment variables are not all automatically exported into Linux.
 
-| Habit | What Deep PTC mode does |
-| --- | --- |
-| Head down and silent, one big hand-off at the end | One short sentence before every `run_code` says what is about to be checked, changed or verified. At real milestones — first pass of inspection, plan fixed, a batch of edits done, tests run, direction changed — the update is a little longer. If two or three tool calls go by without a word, the agent stops and reports where it is. |
-| Skimping on tools and verification to save tokens | Tool calls are the work, not a cost: no skipping a read, a search, a command or a check to save tokens. Related calls are batched into one `run_code` program, verification is matched to the task, and scope is not expanded beyond the user's success criteria. |
-| Guessing at what the user meant | Ask about meaning, not permission. An unknown preset, plugin, product or codename; an unresolved "that thing we did last time"; several materially different technical routes; an unclear source of truth, environment or version; or an unstated expectation about process — each gets a question to the user before any work starts. Searching the workspace for the user's own terminology is explicitly ruled out. Questions go through `ask_user_question` from a `run_code` program, 1–3 at a time, options with the recommended one first, and a generous `timeoutMs` (for example 600000) so the wait is not cut off. "I don't know" is a valid answer and hands the choice to the model; a real answer outranks the model's inference. |
-| Doing more than was asked | Scope is treated as part of intent: the smallest change that satisfies the confirmed criteria, no unrequested features, refactors or abstractions, and verification sized to the change rather than turned into a new project. If the work seems to need more, the model asks before expanding it, and its plan states what it is deliberately not doing. |
-| Treating every task the same way | The expected time to finish chooses the planning behavior. Five minutes or less: plan internally and execute. Five to twenty minutes: write the plan out, start at once without waiting for approval, and stay open to redirection. More than twenty minutes: write the plan out and ask for approval before any work. When the estimate crosses a band the behavior moves with it, boundary estimates round up, and plan mode's own `exit_plan_mode` rules always win. |
-| Doing everything alone | Small sequential work stays with one agent. The model opens a subagent or an Agent Team when the work splits into genuinely independent pieces, a broad exploration would flood its context, parts can be inspected or verified in parallel, or an independent reader would catch what it cannot see. When it opens a team it leads it: one responsibility per teammate, a complete brief, disjoint write scopes on shared tasks, no duplicate work, and every result collected and verified before the report. |
-| Sleeping or blocking through a long wait | Never waits by sleeping, and never holds one long foreground call open. A long command, build, test run or external job is started in the background, the job id is noted, and the turn ends: a finished job or a user message wakes the model at once, so the user can redirect it while it waits. When nothing will finish on its own, `schedule_create` provides the reminder instead of a timer. |
-| Reading "unlimited" as licence to pad or overflow | The same section caps the budget as well as granting it. No padding, repetition or filler; progress updates stay to one short line unless a real milestone is reached; "Length follows what the user needs to act on, not how much work you did". The context window of a single request is still finite, so tool output stays bounded and compaction, the result pruner and sub-agents keep long work inside the window. |
+### Sandbox behavior
 
-The identity line is explicit: the model works at DeepSeek (深度求索), and its token budget in this mode is unlimited — *"spend it on the work, never ration it."* The contract turns that framing into behavior rather than a slogan, so "unlimited" improves answers instead of inflating them.
+Native PowerShell, Bash and Zsh use Harness sandbox, approval and process management. WSL currently supports only execution already authorized as `danger-full-access`. Confined Windows policies are refused before execution, without fallback or permission changes. The plugin does not authorize escalation.
 
-Three boundaries keep it from over-correcting: editing a file that is in scope is the work itself and needs no permission; facts the model can establish by inspection — where code lives, how current behavior works, what version is installed — are inspected rather than asked about; and plan mode's own question rules still take precedence over this contract. When the user does answer, that answer outranks the model's inference, its preference and this file's defaults.
+## Working contract
 
-## Install
+- Report milestones and keep active work visible about every 30–60 seconds at tool boundaries. Combine trivial reads instead of narrating every call.
+- Make a focused read-only lookup for unfamiliar installed names and locations. Ask when meaning remains ambiguous or consequential user choices change the work; search cannot define intent.
+- Plan internally for small linear tasks and show concise plans for larger work. Duration does not revoke existing authorization. Explicit plan mode keeps its read-only and approval requirements.
+- Use current evidence and verify changed behavior. Finish when acceptance criteria and relevant checks are satisfied; repeat checks for new changes, failures or conflicting evidence.
+- Distinguish finite jobs, long-lived services and external tasks without Harness notifications. Check server readiness and continue validation. Collect relevant results before declaring completion.
+- Delegate independent work deliberately, define disjoint write scopes and collect results through the actual tool's channel.
 
-Requires DSH `>= 0.2.1-rc.3` — see [Compatibility](#compatibility).
+This expresses a working preference, not a grant of extra tokens, different billing or greater model capacity. Prompt compliance and quality gains still need real-task evaluation.
 
-**From npm (recommended once published).** The same bundle is published as `dsh-deep-ptc-mode`:
+## Install or upgrade
+
+Requires Node `>=24` and DSH `>=0.2.1-rc.5`. Windows desktop rc.5 was used for real WSL/PowerShell command checks. macOS/Zsh configuration, argv and tool mounting were checked; native macOS execution has not been verified on this Windows host.
 
 ```js
-plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.2.0" })
-```
-
-**From GitHub.** In the desktop app open **Plugins → Install plugin** and paste:
-
-```text
-github:lishize20040802-rgb/dsh-deep-ptc-mode
-```
-
-Or from an agent session that has the `plugin_manager` tool:
-
-```js
-plugin_manager({ action: "install_bundle", target: "github:lishize20040802-rgb/dsh-deep-ptc-mode" })
-```
-
-**From a local checkout** (development):
-
-```js
+plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.3.0" })
+// Or from a local checkout or archive:
 plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-mode" })
+// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.3.0.tgz"
 ```
 
-After installation, newly created tasks show **深度PTC模式** in the mode picker's *Custom* group, and it can be set as the default mode for new tasks. Sessions that were already running keep the preset they were created with. Installing the same bundle again updates it.
+Repository locator: `github:lishize20040802-rgb/dsh-deep-ptc-mode`. It installs content actually published there; a local upgrade does not publish to GitHub or npm.
 
-## Compatibility
+Installing the same bundle updates it. Upgrading from the persona-only release requires a Host plugin reload; reopen the app if the settings card has not appeared. Installation does not change the default mode for unrelated new sessions.
 
-`package.json` declares:
+Settings persist through the active profile's Cordis patch:
 
-```json
-"engines": { "dsh": ">=0.2.1-rc.3" }
+```yaml
+- id: deep-ptc-settings
+  config:
+    environment: auto       # auto | wsl | powershell | zsh | bash
+    wslDistribution: ''      # blank uses the Windows default
 ```
 
-This is a **floor, not an exact pin**. DSH checks plugin requirements as SemVer ranges with prereleases included, so `0.2.1-rc.4`, `0.2.1`, `0.2.2-rc.1`, `0.3.0` and every later release satisfy the range, while older runtimes such as `0.2.1-rc.2` or `0.2.0` are refused before anything is installed. An exact pin (`"0.2.1-rc.3"`) would reject every future release, including that version's own patch and release-candidate builds.
+Prefer the UI, which uses revisioned, atomic Host form writes.
 
-## Files
+## Compatibility and development
 
-- `cordis.patch.yml` — one `@deepseek-ai/dsh-agent-preset` declaration: `config.id` `deep-ptc`, display name 「深度PTC模式」, `order: 5`, the child-plugin list copied from the built-in PTC preset, and a persona `prefix`/`suffix` carrying the identity, the unlimited-budget statement, and the behavior contract in seven sections — visible progress, unlimited budget, confident tool use, asking before guessing, planning by expected size, waiting without blocking, and delegation.
-- `package.json` — the bundle manifest: `dsh.bundle.patch` points at the patch above, and `engines.dsh` is the compatibility floor.
-- `assets/icon.png` — the storefront/market icon.
+The rc.5 PTC template has 23 top-level rows. The template differs only in persona; runtime composition replaces the two platform-switched shell tools with one isolated execution group. Planning, compaction, pruning, web and delegation settings stay intact.
 
-## Design notes
+Version 1.3.0 adds Host/browser code and is no longer persona-only. `compatibility.json` records the verified upstream and fixture hash. The engines range is an installation floor, not proof that every future release was tested.
 
-- The behavior contract lives in `dsh-persona`'s `suffix` (system-prompt order 10200, after first-party guidance) rather than `prefix`, so it is the constraint closest to the moment the model answers; the prefix keeps the identity line, extended with one sentence that this mode's token budget is unlimited.
-- The unlimited-budget section sits immediately before the tool-use rules, where it changes how much effort the model spends, and it carries two guardrails — no verbosity and a finite per-request context — so the framing cannot be read as permission to pad or overflow. A prompt that only said "tokens are unlimited" would trade one failure mode (skimping) for another (rambling).
-- No extra plugin injects mechanical progress notes. The 1017 model's problem is expression, not capability; a prompt contract plus PTC's batched call rhythm is enough, and it avoids additional runtime cost.
-- The child-plugin list is kept identical to the shipped PTC declaration. It was compared against the preset installed with dsh-web-app **0.2.1-rc.5**: same 23 rows, same configs, same plan-mode text, same disabled rows (workflow and plugin-manager tools stay disabled exactly as PTC ships them). Only the persona differs, so no official PTC capability is dropped or retuned by this plugin.
-- The deployment-level `system-prompt` is untouched, so only sessions that select this preset are affected.
-- The asking section separates user-owned semantics from inspectable facts on purpose. A prompt that only said "ask more" would have the model interrupting the user for facts one `read` would settle; a prompt that only said "inspect before asking" reproduces the original failure, where an unfamiliar name in the request is guessed at or searched for instead of being asked about. The rule is: meaning goes to the user, mechanics go to the tools.
-- Planning by expected size replaces both extremes — a plan dumped for every edit, and no plan for a day-long job — with a band that matches the risk. The bands are written on the expected completion time, including verification; a boundary estimate rounds up because one approval costs less than a large piece of work started against the wrong plan; and plan mode's `exit_plan_mode` approval always outranks these bands, with `ask_user_question` used only as the outside-plan-mode fallback for the over-twenty-minute band.
-- Waiting is contract-level and needs no runtime plugin. A sleep or one long foreground poll inside `run_code` blocks the step, and steering messages are only claimed at a step boundary, so the contract forbids long in-turn waits: long work goes to a background job and the turn ends, where the job-finished notice and the user's next message both resume the agent immediately. `schedule_create` covers waits with no job to finish. This keeps the user in control without adding a new host service or changing the agent loop.
-- Delegation is described conditionally and adds no plugin rows. Agent Team tools (`spawn_teammate`, `team_task_*`, `wait_agent`, …) are host-plane tools supplied by the host's experimental Agent Team bundle, not something a preset can mount; on a host without that bundle the preset's own `subagent` / `subagent_fork` rows remain the delegation surface. The contract therefore tells the model to use the delegation tools its catalog actually lists, and to lead a team when it opens one.
-- Version 1.2.0 adds the three behaviors: delegating by the shape of the work; asking about meaning — names, referents, routes, sources and expected process — before guessing, with scope convergence so asking cannot be skipped in favor of doing more work; planning by expected size, where only work estimated over twenty minutes waits for approval; and waiting without blocking — background jobs and an ended turn instead of sleeps, so a user message or a finished job resumes the work at once.
+```sh
+npm ci
+npm run check
+npm test
+npm run check:upstream -- /path/to/the/new/upstream/ptc.patch.yml
+npm pack
+```
 
-## Uninstall
+The checker parses `!!js` as data, compares nested upstream settings and fails on drift requiring review. Tests cover platforms, argv boundaries, confined WSL refusal, atomic settings writes and stale revisions, plus preset replacement and cleanup. Real-task evaluations should measure successful completion, unnecessary questions, scope expansion, background-work collection and latency.
 
-Use `plugin_manager` `remove_bundle` with the bundle package name `dsh-deep-ptc-mode`. Deleting this directory does not immediately affect an already-installed copy, but updates and re-installs will fail — handle them in order.
+Main files: `cordis.patch.yml` is the settings entry; `lib/index.mjs` manages revisions; `lib/model.mjs` builds isolated execution configurations; `lib/executor.mjs` adapts WSL/Zsh; `lib/terminal.mjs` provides the Zsh tool; `lib/client.js` owns the bilingual settings card; `lib/preset.json` contains the persona and official PTC template.
 
-## Open source
-
-Deep PTC mode is open source under the MIT License. The repository is the source of every published artifact; issues, pull requests and forks are welcome at [github.com/lishize20040802-rgb/dsh-deep-ptc-mode](https://github.com/lishize20040802-rgb/dsh-deep-ptc-mode).
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+Uninstall with `plugin_manager` action `remove_bundle`, target `dsh-deep-ptc-mode`. Local link installations depend on their source directory: uninstall before deleting it.

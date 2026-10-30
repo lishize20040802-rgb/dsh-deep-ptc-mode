@@ -1,0 +1,5 @@
+{
+  "verifiedUpstream": "0.2.1-rc.5",
+  "source": "@deepseek-ai/dsh-web-app/presets/ptc.patch.yml",
+  "sha256": "9e355c947bf61c3d2fe9bf3214b386f83c0d99d37579ce22576d4b82cb6e1a2c"
+}
