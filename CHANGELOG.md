@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.1 — 2026-11-11
+
+- 更新 npm 与 DSH 插件管理器中的简介：写明右侧栏面板（子代理、后台任务、输出文件、SSH 连接）以及对官方与第三方插件的兼容；README 的「五个基本问题」补充新的提问与工作纪律规则。代码与 1.9.0 相同。
+
+- The npm and DSH plugin-manager descriptions now cover the right-sidebar panel (subagents, background jobs, output files, SSH connections) and compatibility with official and third-party plugins; the README's five basic problems include the new asking and work-discipline rules. The code is unchanged from 1.9.0.
+
 ## 1.9.0 — 2026-11-11
 
 - 面板移入 DSH 官方入口：设置里新增独立的「深度 PTC」页（执行环境、界面特效、可复制的诊断信息）；右侧栏新增「深度 PTC」页签，也出现在右侧栏的新建页签引导中，停靠、浮动、全屏由 DSH 管理；输入框下方的小胶囊打开它，没有右侧栏的宿主在原地展开。原来悬浮的侧边卡片、挤压对话区的停靠列和右上角胶囊全部移除，右侧栏全屏时不再残留悬浮胶囊（#11），也不再遮挡消息（#12）。

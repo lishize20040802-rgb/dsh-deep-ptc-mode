@@ -1,6 +1,6 @@
 {
   "name": "dsh-deep-ptc-mode",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "Deep PTC mode for DeepSeek Harness: interruptible background jobs, selectable shells, a right-sidebar panel with output files and SSH, a bilingual UI, and compatibility with official and third-party plugins.",
   "type": "module",
   "keywords": [

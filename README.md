@@ -1,6 +1,6 @@
 # Deep PTC mode
 
-[中文](README.zh.md) · MIT · **1.9.0**
+[中文](README.zh.md) · MIT · **1.9.1**
 
 [Changelog](CHANGELOG.md) · [Test report](TEST_REPORT.md)
 
@@ -206,10 +206,10 @@ A prompt changes the model's working tendency, not the real token limit or billi
 Requires Node `>=24` and DSH `>=0.2.2-rc.1`. The installer rejects the current package on DSH `0.2.1-rc.5` based on its manifest. macOS/Zsh checks cover configuration, argv and tool mounting.
 
 ```js
-plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.9.0" })
+plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.9.1" })
 // Or from a local checkout or archive:
 plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-mode" })
-// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.9.0.tgz"
+// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.9.1.tgz"
 ```
 
 Repository locator: `github:lishize20040802-rgb/dsh-deep-ptc-mode`. It installs content actually published there; a local upgrade does not publish to GitHub or npm.
