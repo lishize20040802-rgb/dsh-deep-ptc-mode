@@ -1,12 +1,12 @@
 # 深度 PTC 模式
 
-[English](README.md) · MIT · 当前版本 **1.8.9**
+[English](README.md) · MIT · 当前版本 **1.9.0**
 
 [更新日志](CHANGELOG.md) · [测试报告](TEST_REPORT.md)
 
 深度 PTC 是 DeepSeek Harness 的 Agent 模式，支持进度汇报、澄清提问、按任务规模制定计划，以及可插话的后台任务。它以已安装的官方 PTC 预设为基础，提供可选执行环境、按需加载工具和 Skill，以及面向第三方插件的两层预设身份适配。
 
-1.8.9 把面板移进 DSH 官方入口：设置里有独立的「深度 PTC」页，右侧栏有「深度 PTC」页签（执行环境、子代理、后台任务、输出文件、SSH 连接、工具状态），输入框下方的小胶囊打开它。界面特效改为轻量渲染，检测到外观插件时默认关闭。不再添加任何快捷键。
+1.9.0 把面板移进 DSH 官方入口：设置里有独立的「深度 PTC」页，右侧栏有「深度 PTC」页签（执行环境、子代理、后台任务、输出文件、SSH 连接、工具状态），输入框下方的小胶囊打开它。界面特效改为轻量渲染，检测到外观插件时默认关闭。不再添加任何快捷键。
 
 ## 五个基本问题
 
@@ -210,10 +210,10 @@ WSL 命令使用 Linux/POSIX 语法；文件工具和 `workdir` 仍用 Windows �
 本地目录或构建产物可通过插件管理器安装：
 
 ```js
-plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.8.9" })
+plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.9.0" })
 // 也可从本地目录或安装包安装：
 plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-mode" })
-// 或 target: "C:\\path\\to\\dsh-deep-ptc-mode-1.8.9.tgz"
+// 或 target: "C:\\path\\to\\dsh-deep-ptc-mode-1.9.0.tgz"
 ```
 
 GitHub 地址：`github:lishize20040802-rgb/dsh-deep-ptc-mode`。该地址安装远端实际内容；本地升级不会自动发布到 GitHub/npm。

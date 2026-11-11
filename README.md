@@ -1,12 +1,12 @@
 # Deep PTC mode
 
-[中文](README.zh.md) · MIT · **1.8.9**
+[中文](README.zh.md) · MIT · **1.9.0**
 
 [Changelog](CHANGELOG.md) · [Test report](TEST_REPORT.md)
 
 Deep PTC is a DeepSeek Harness agent mode with progress reports, clarifying questions, task-size planning, and interruptible background work. It builds on the installed official PTC preset with selectable shells, on-demand tools and skills, and a two-layer preset identity adapter for third-party plugins.
 
-1.8.9 moves the panel into DSH's official entry points: a Deep PTC settings page, and a Deep PTC tab in the right sidebar (environment, subagents, background jobs, output files, SSH connections, tool state) that the capsule under the composer opens. Visual effects render lightly and start off when an appearance plugin is installed. The plugin adds no keyboard shortcuts.
+1.9.0 moves the panel into DSH's official entry points: a Deep PTC settings page, and a Deep PTC tab in the right sidebar (environment, subagents, background jobs, output files, SSH connections, tool state) that the capsule under the composer opens. Visual effects render lightly and start off when an appearance plugin is installed. The plugin adds no keyboard shortcuts.
 
 ## Five basic problems
 
@@ -206,10 +206,10 @@ A prompt changes the model's working tendency, not the real token limit or billi
 Requires Node `>=24` and DSH `>=0.2.2-rc.1`. The installer rejects the current package on DSH `0.2.1-rc.5` based on its manifest. macOS/Zsh checks cover configuration, argv and tool mounting.
 
 ```js
-plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.8.9" })
+plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.9.0" })
 // Or from a local checkout or archive:
 plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-mode" })
-// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.8.9.tgz"
+// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.9.0.tgz"
 ```
 
 Repository locator: `github:lishize20040802-rgb/dsh-deep-ptc-mode`. It installs content actually published there; a local upgrade does not publish to GitHub or npm.

@@ -117,6 +117,46 @@ test('host frames are recognised by official package path, not by a similar name
   }
 });
 
+test('official plugins see the base id by role, while host internals and the app bundle keep the exact id', () => {
+  const root = mkdtempSync(join(tmpdir(), 'deep-ptc-official-'));
+  try {
+    const bundled = join(root, 'app.asar', 'dsh', 'node_modules');
+    const write = (dir, name, source) => {
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, 'package.json'), JSON.stringify({ name, version: '0.2.2-rc.2' }));
+      writeFileSync(join(dir, 'lib.js'), source);
+      return join(dir, 'lib.js');
+    };
+    // Computer use compares a configured 'ptc' with composedPreset; another official plugin only reads it.
+    // Neither file is read: the official role decides, whatever form the gate takes.
+    const cua = write(join(bundled, '@deepseek-ai', 'dsh-cua'), '@deepseek-ai/dsh-cua',
+      'if (presetCtx.agentPresets.composedPreset(agent.ctx) !== config.agentPreset) return;\n');
+    const reader = write(join(bundled, '@deepseek-ai', 'dsh-tool-manager'), '@deepseek-ai/dsh-tool-manager',
+      'export const preset = ctx.agentPresets.composedPreset(agent.ctx);\n');
+    // A subagent spawn passes the identity on to its child, so it must stay exact.
+    const subagent = write(join(bundled, '@deepseek-ai', 'dsh-subagent', 'lib'), '@deepseek-ai/dsh-subagent',
+      'const agentPreset = parent.ctx.get("agentPresets")?.composedPreset(parent.ctx);\n');
+    // The application's own bundled code, outside any installed package.
+    const app = write(join(root, 'app.asar'), '@deepseek-ai/dsh-desktop', 'composedPreset(ctx);\n');
+    const frames = file => ['Error', '    at composedPreset (file:///x/preset-compat.mjs:1:1)', `    at sync (${file}:1:1)`].join('\n');
+    for (const file of [cua, reader]) {
+      const info = inspectCaller(frames(pathToFileURL(file).href), 'deep-ptc');
+      assert.equal(info.host, false);
+      assert.equal(info.official, true);
+      assert.equal(info.restricted, undefined, 'official plugins are not probed');
+      assert.equal(decidePresetId('deep-ptc', opts, info), 'ptc');
+      assert.equal(decidePresetId('standard', opts, info), 'standard', 'only Deep PTC sessions are masked');
+      assert.equal(decidePresetId('deep-ptc', { ...opts, support: { [info.packageName]: 'native' } }, info), 'deep-ptc',
+        'an explicit support override still wins');
+    }
+    for (const file of [subagent, app]) {
+      assert.equal(inspectCaller(frames(pathToFileURL(file).href), 'deep-ptc').host, true, file);
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('the Cordis service proxy frame is skipped, so the real caller is classified', () => {
   const root = mkdtempSync(join(tmpdir(), 'deep-ptc-proxy-'));
   try {

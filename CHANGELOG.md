@@ -1,9 +1,11 @@
 # Changelog
 
-## 1.8.9 — 2026-11-11
+## 1.9.0 — 2026-11-11
 
 - 面板移入 DSH 官方入口：设置里新增独立的「深度 PTC」页（执行环境、界面特效、可复制的诊断信息）；右侧栏新增「深度 PTC」页签，也出现在右侧栏的新建页签引导中，停靠、浮动、全屏由 DSH 管理；输入框下方的小胶囊打开它，没有右侧栏的宿主在原地展开。原来悬浮的侧边卡片、挤压对话区的停靠列和右上角胶囊全部移除，右侧栏全屏时不再残留悬浮胶囊（#11），也不再遮挡消息（#12）。
-- 设置左导航不再出现两个「Agent 预设」（#9）：去掉对 `settings.section` 的同 id 影子注册，改为注册自己的设置页。
+- 设置左导航不再出现两个「Agent 预设」（#9、#13）：去掉对 `settings.section` 的同 id 影子注册，改为注册自己的设置页。
+- 深度 PTC 会话里的官方插件（如 Computer Use）不再静默缺席（#14）：除子代理、定时任务、预设注册表和应用自身代码外，官方插件一律按角色收到基础预设 `ptc`，不再逐个读取源码判断。仅在深度 PTC 会话中生效。
+- 感谢 @GYT-Lucas 在 #13、#14 中定位根因并提交修复，本版以自己的实现吸收了这两个问题。
 - 新增「输出文件」：本会话写入或交付的文件，最新在前；最多三个位置，超出时折叠占一个位置。规则与 DSH 官方交付卡片一致，并包括 `run_code` 内写入的文件。
 - 新增 SSH：面板列出本会话连接过的主机及结果，以及 `~/.ssh/config` 的主机别名；模型获得本机 OpenSSH 客户端位置、主机别名和非交互使用规则（`BatchMode`、超时、认证失败即停、长任务转后台）。只读取主机名称、地址、用户和端口，不读取密钥。
 - 预设名称与描述改为与语言无关（`Deep PTC · PowerShell`），模式选择器和会话头部仍按 DSH 语言显示本地化文字；安全模式会写出宿主给出的原因。
@@ -15,7 +17,9 @@
 - 预设身份兼容层在宿主 `composedPreset` 签名不符时不安装。
 
 - The panel moves into official DSH entry points: a Deep PTC settings page (environment, visual effects, copyable diagnostics), and a Deep PTC tab in the right sidebar, also listed on its new-tab guide, which DSH docks, floats and expands like its own tabs. The capsule under the composer opens it, or opens the panel in place on a host without a right sidebar. The floating side card, the docked column that narrowed the conversation and the top-right pill are gone, so nothing floats over a fullscreen sidebar (#11) or covers messages (#12).
-- The settings navigation lists Agent presets once (#9): the same-id shadow entry in `settings.section` is replaced by Deep PTC's own settings page.
+- The settings navigation lists Agent presets once (#9, #13): the same-id shadow entry in `settings.section` is replaced by Deep PTC's own settings page.
+- Official plugins such as computer use no longer go missing in Deep PTC sessions (#14): apart from subagents, schedules, the preset registry and the application's own code, every official plugin sees the base preset `ptc` by its role, without its source being read. Only Deep PTC sessions are affected.
+- Thanks to @GYT-Lucas for tracing the causes and contributing fixes in #13 and #14; this release absorbs both with its own implementation.
 - Output files: files this conversation wrote or delivered, newest first, in three positions with overflow folded into one. The rule matches DSH's deliverables card and also counts files written from `run_code`.
 - SSH: the panel lists hosts this conversation reached with their outcome, and the host aliases from `~/.ssh/config`. The model is told where the OpenSSH client is, which aliases exist, and the non-interactive rules (`BatchMode`, timeouts, stop on authentication failure, long work as a background job). Only names, addresses, users and ports are read, never keys.
 - The preset name and description are language-neutral (`Deep PTC · PowerShell`); the mode picker and conversation header still show localized text. Safe mode publishes the host's reason.
