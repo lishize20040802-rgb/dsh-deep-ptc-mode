@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Deep PTC Mode",
-    "description": "DeepSeek Harness agent mode with interruptible background jobs, selectable shells, and third-party PTC compatibility. The interface follows DSH's Chinese or English language setting.",
+    "description": "DeepSeek Harness agent mode with interruptible background jobs, selectable shells, a right-sidebar panel for subagents, jobs, output files and SSH, and compatibility with official and third-party plugins. The interface follows DSH's Chinese or English language setting.",
     "detail": "README.md"
   }
 }
