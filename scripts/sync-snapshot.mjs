@@ -22,7 +22,6 @@ const snapshot = {
   order: PRESET_META.order,
   plugins,
   name: PRESET_META.name,
-  description: PRESET_META.description,
 };
 writeFileSync(snapshotUrl, `${JSON.stringify(snapshot, null, 2)}\n`);
 console.log(`snapshot: ${plugins.length} rows from ${loaded.source}`);

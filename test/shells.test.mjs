@@ -175,3 +175,79 @@ test('shellNote describes the executable in one sentence', () => {
   assert.equal(shellNote({ family: 'bash', executable: '/bin/bash' }), 'The bash tool uses /bin/bash with bash -c.');
   assert.equal(shellNote({ family: 'zsh', executable: '/bin/zsh' }), 'The zsh tool uses /bin/zsh with zsh -lc.');
 });
+
+// A Microsoft Store install: stat fails with EACCES on the alias, lstat sees a link, readlink names the package file.
+function storeFs({ aliases = {}, files = [], denied = [] }) {
+  const fail = code => Object.assign(new Error(code), { code });
+  const lower = value => value.toLowerCase();
+  const aliasOf = path => aliases[Object.keys(aliases).find(key => lower(key) === lower(path))];
+  return {
+    statSync(path) {
+      if (aliasOf(path) !== undefined || denied.includes(path)) throw fail('EACCES');
+      if (files.includes(path)) return { isFile: () => true };
+      throw fail('ENOENT');
+    },
+    lstatSync(path) {
+      if (aliasOf(path) !== undefined) return { isSymbolicLink: () => true };
+      throw fail(denied.includes(path) ? 'EACCES' : 'ENOENT');
+    },
+    readlinkSync(path) {
+      const target = aliasOf(path);
+      if (target === undefined) throw fail('EINVAL');
+      return target;
+    },
+  };
+}
+
+const LOCAL = 'C:\\Users\\me\\AppData\\Local';
+const STORE_TOP = `${LOCAL}\\Microsoft\\WindowsApps\\pwsh.exe`;
+const STORE_PKG = `${LOCAL}\\Microsoft\\WindowsApps\\Microsoft.PowerShell_8wekyb3d8bbwe\\pwsh.exe`;
+const STORE_TARGET = 'C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe';
+
+test('probeExecutable accepts an app execution alias and nothing else that stat cannot read', async () => {
+  const { probeExecutable } = await import('../lib/shells.mjs');
+  const fs = storeFs({ aliases: { [STORE_TOP]: STORE_TARGET }, files: [PS51], denied: ['C:\\Locked\\pwsh.exe'] });
+  assert.deepEqual(probeExecutable(PS51, fs), { target: PS51 });
+  assert.deepEqual(probeExecutable(STORE_TOP, fs), { target: STORE_TARGET, alias: true });
+  assert.equal(probeExecutable('C:\\Locked\\pwsh.exe', fs), undefined);
+  assert.equal(probeExecutable('C:\\Missing\\pwsh.exe', fs), undefined);
+  assert.equal(probeExecutable('', fs), undefined);
+});
+
+test('a Store PowerShell is discovered once, with a Store label, from the alias and where()', async () => {
+  const { probeExecutable, STORE_PWSH } = await import('../lib/shells.mjs');
+  const fs = storeFs({ aliases: { [STORE_TOP]: STORE_TARGET, [STORE_PKG]: STORE_TARGET }, files: [PS51] });
+  const shells = discoverShells({
+    platform: 'win32',
+    env: { SystemRoot: 'C:\\Windows', ProgramFiles: 'C:\\Program Files', LOCALAPPDATA: LOCAL },
+    probe: path => probeExecutable(path, fs),
+    where: name => name === 'pwsh.exe' ? [STORE_TOP, STORE_PKG] : [],
+  });
+  assert.deepEqual(shells, [
+    { id: `path:${PS51}`, label: 'Windows PowerShell 5.1', path: PS51, family: 'powershell' },
+    { id: `path:${STORE_TOP}`, label: STORE_PWSH, path: STORE_TOP, family: 'powershell' },
+  ]);
+  const exists = path => probeExecutable(path, fs) !== undefined;
+  assert.equal(resolveShellExecutable(`path:${STORE_TOP}`, { family: 'powershell', discovered: shells, exists }), STORE_TOP);
+});
+
+test('an MSI and a Store PowerShell are distinct installs', async () => {
+  const { probeExecutable, STORE_PWSH } = await import('../lib/shells.mjs');
+  const fs = storeFs({ aliases: { [STORE_TOP]: STORE_TARGET }, files: [PWSH7] });
+  const shells = discoverShells({ platform: 'win32', env: { ProgramFiles: 'C:\\Program Files', LOCALAPPDATA: LOCAL },
+    probe: path => probeExecutable(path, fs), where: () => [] });
+  assert.deepEqual(shells.map(item => item.label), ['PowerShell 7', STORE_PWSH]);
+});
+
+test('probeExecutable reads a real app execution alias on this machine', { skip: process.platform !== 'win32' }, async () => {
+  const { probeExecutable } = await import('../lib/shells.mjs');
+  const { join } = await import('node:path');
+  const { existsSync, readdirSync } = await import('node:fs');
+  const dir = join(process.env.LOCALAPPDATA ?? '', 'Microsoft', 'WindowsApps');
+  let alias;
+  try { alias = readdirSync(dir).find(name => name.toLowerCase().endsWith('.exe')); } catch { /* no aliases */ }
+  if (alias === undefined) return;
+  const path = join(dir, alias);
+  assert.equal(existsSync(path), false, 'Node cannot stat an app execution alias');
+  assert.equal(probeExecutable(path)?.alias, true);
+});

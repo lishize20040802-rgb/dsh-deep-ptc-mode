@@ -1,12 +1,12 @@
 # Deep PTC mode
 
-[中文](README.zh.md) · MIT · **1.8.8**
+[中文](README.zh.md) · MIT · **1.8.9**
 
 [Changelog](CHANGELOG.md) · [Test report](TEST_REPORT.md)
 
 Deep PTC is a DeepSeek Harness agent mode with progress reports, clarifying questions, task-size planning, and interruptible background work. It builds on the installed official PTC preset with selectable shells, on-demand tools and skills, and a two-layer preset identity adapter for third-party plugins.
 
-In 1.8.8 the mode picker, settings, and conversation UI follow DSH's Chinese or English language setting. This release also refines tool quarantine, PowerShell wait detection, and third-party preset detection.
+1.8.9 moves the panel into DSH's official entry points: a Deep PTC settings page, and a Deep PTC tab in the right sidebar (environment, subagents, background jobs, output files, SSH connections, tool state) that the capsule under the composer opens. Visual effects render lightly and start off when an appearance plugin is installed. The plugin adds no keyboard shortcuts.
 
 ## Five basic problems
 
@@ -48,7 +48,7 @@ Each turn ends with a skill context card that lists only the skills still loaded
 
 Search summaries first, then load full schemas: six entries per page by default (maximum eight), up to six schemas within a 16 KB budget per load, and up to twelve recent selections. Quarantine persists with the conversation: clear unavailability blocks immediately; temporary failures need three in a row and a success clears the count; wrong arguments, denial and normal business failures are not tool failures; one reset clears only the current conversation. Skills load in two stages: discovery reads metadata and invocation permission only; the official `skill` tool loads the body.
 
-Install the plugin, choose an environment under **Settings → Plugins → Deep PTC**, and select **Deep PTC Mode** for a new conversation.
+Install the plugin, choose an environment under **Settings → Deep PTC**, and select **Deep PTC Mode** for a new conversation.
 
 ## Skill context card (1.8.5)
 
@@ -62,23 +62,29 @@ After each turn, a card at the end of that turn in the conversation (where offic
 - The card tracks skills loaded directly through the official `skill` tool and skills loaded by a PTC inner call inside `run_code`. The latter usually reach the program rather than the model context, so closing one only removes it from the card, not from program output. `/name` injections are not covered yet.
 - A switch leaves no command row in the conversation (the session log still records it); only a failed switch shows a short error line in place.
 
-## Visual effects and side card
+## Panel, settings page and visual effects
 
-The Deep PTC mode label, settings, and conversation UI switch between Chinese and English with DSH **Settings → General → Language**.
+The Deep PTC mode label, settings, and conversation UI switch between Chinese and English with DSH **Settings → General → Language**. Every entry point uses an official DSH extension point; the plugin changes no host layout and registers no keyboard shortcuts.
 
-The look from dsh-refined-ui is part of this plugin and applies **only while the conversation on screen is a Deep PTC session**; other modes and the new-session page keep the official look.
+- **Settings → Deep PTC**: execution environment and shell, the visual effects switch, and copyable diagnostics to attach to interface bug reports.
+- **The Deep PTC tab in the right sidebar** (also offered on the sidebar's new-tab guide). DSH docks, floats, splits and expands it like its own tabs.
+  - **Execution environment**: WSL, PowerShell, native Bash or Zsh, for newly created Deep PTC sessions.
+  - **Subagents**: name, state, duration and tokens; a row opens that subagent's chat in the official right sidebar.
+  - **Background jobs**: six positions, up to five active jobs first and up to three finished jobs; overflow folds into one expandable row.
+  - **Output files**: files this conversation wrote or delivered, newest first, in three positions; overflow folds into one of them. The rule matches DSH's own deliverables card and also counts files written from `run_code`.
+  - **SSH connections**: hosts this conversation reached, with their outcome, and the host aliases in `~/.ssh/config`.
+  - **Tool state**: the "Reload all tool states" button and, when present, the failed external tools.
+- **The capsule under the composer** shows the environment, subagent count and tool notices, and opens the tab. On a host without a right sidebar it opens the panel in place. It lives in the composer's own dock, so it never covers messages and is covered with the conversation when the sidebar goes fullscreen.
 
-- Calmer light and dark neutrals, a Chinese-first font stack, slim scrollbars, a floating composer card with a flowing blue hairline on focus, a blue gradient send button, soft blue user bubbles, roomier assistant text, and a blue wash on hovered and selected sidebar rows.
-- Interactions: Ctrl/Cmd+K command palette (sessions, new session, plugins, automations), pointer spotlight, click ripple, magnetic send button, `/` to focus the composer, Alt+Up/Down to switch sessions, Ctrl+Alt+D diagnostics.
-- Motion: while the conversation runs, the composer turns blue and breathes (also while focused), with a send-button ring and a steady stream of sparks rising above it; sparks on send and completion. Everything honours reduced motion.
-- Each Deep PTC conversation has a **side card** on the right.
-  - **Execution environment** offers WSL, PowerShell, native Bash, or Zsh depending on the host. It writes the same host settings as the settings page and applies to newly created Deep PTC sessions.
-  - **Visual effects** toggles styling and animations immediately and saves the preference in the current client. Keep it off when using an external theme or UI plugin.
-  - **Subagents**, when there are any: name, state, duration and tokens from the official subagent catalog and timing data; a row opens that subagent's chat in the official right sidebar.
-  - **Background jobs** shows the current conversation's active and finished jobs. The card has six positions by default, with up to five active jobs first and up to three finished jobs. An expandable row uses one position and shows how many jobs it contains.
-  - **Tool state**: the “Reload all tool states” button and, when present, the failed external tools.
-  The column uses the host's background with light grey dividers, blue only for the selected option, button outlines and status squares, and the host's usual black and grey text; for a running subagent only its small status square flashes blue. In a narrow conversation the card folds into a small pill, whose status square flashes the same way. It can be collapsed, and that choice is kept on this machine.
-- While the standalone dsh-refined-ui is still running, this plugin does not draw the same look a second time.
+Visual effects apply **only while the conversation on screen is a Deep PTC session**: calmer light and dark colours and fonts, a hairline on the focused composer, a blue gradient send button, soft blue user bubbles, pointer spotlight, click ripple, a magnetic send button; while running, a glowing composer, a send-button ring and sparks rising above the composer.
+
+- Light rendering: effect styles target DSH's own stable attributes instead of measuring elements every frame; looping animations change only opacity or transforms; the spark canvas covers only the area around the composer at no more than 1.5 device pixels per CSS pixel and stops drawing when nothing moves or the window is hidden.
+- With an appearance plugin such as dsh-claude-style or dsh-refined-ui installed, effects start off; turning them on keeps your choice. The standalone dsh-refined-ui is never drawn twice.
+- Everything honours reduced motion.
+
+## SSH
+
+Deep PTC reaches external hosts through the local OpenSSH client in the selected environment's shell; it adds no transport of its own. The model is told where the client is, which host aliases `~/.ssh/config` defines (names, addresses, users and ports only, never keys), and how to use them: always non-interactive (`BatchMode=yes`, a connect timeout), no interactive remote shell, never waiting for a password or host-key prompt; on an authentication failure it stops and tells you instead of trying other credentials or disabling host-key checking; long remote work runs as a background job. In WSL, SSH runs inside the distribution with its own `~/.ssh`.
 
 ## 1.7.2: lightweight, on-demand tool orchestration
 
@@ -88,7 +94,7 @@ One tool/skill directory, `deep_ptc_tools`, coordinates discovery. Task operatio
 - **Quarantine what is actually broken.** A tool that is clearly unavailable (a missing module or API, or a declared unavailable state) is quarantined at once; temporary and unexplained failures need three in a row, and a success clears the count. Wrong arguments or paths, denial, cancellation and normal results describing their own subject (such as a failed build) are not tool failures. Official tools are never quarantined, including those in the profile's root composition (such as `lsp` and `terminal_*`). After quarantine, execution is blocked in code and state persists with the session. Agent recreation, conversation restore and provider reload do not lift quarantine. Capture provenance and reset generation before dispatch; late pre-reset results cannot contaminate the new state. Empty results, normal pagination and ordinary nonzero command exits are not failures either.
 - **Finish the task; do not diagnose failed providers.** Correct wrong input and retry a temporary failure at most twice. Once a tool is quarantined, move promptly to a working equivalent or official fallback, with no probing, retrying or root-cause investigation. Read back only the task state necessary to avoid duplicate effects after a potentially partial mutation.
 - **Brief completion reporting.** The model lists failed tools and declared provider names at completion. The runtime also projects an expandable compatibility notice after a turn ends. Unknown ownership is reported as unknown, never inferred from a tool name.
-- **Reload from the side card.** “Reload all tool states” clears quarantine and on-demand selections for the current conversation without a model call or stopping running jobs. The user slash command `/deep-ptc-reset-tools` provides the same action. The tool state and this command are registered at the plugin root, like the skill card, so they work in an idle conversation too.
+- **One-click reload.** “Reload all tool states” clears quarantine and on-demand selections for the current conversation without a model call or stopping running jobs. The user slash command `/deep-ptc-reset-tools` provides the same action. The tool state and this command are registered at the plugin root, like the skill card, so they work in an idle conversation too.
 - **Two-stage skill use.** Search the host's resolved, model-invocable skill metadata, then load the exact name with the official `skill` tool and follow its full instructions. Reuse instructions already in context. Discovery never reads skill bodies.
 
 ```js
@@ -128,7 +134,7 @@ These rules apply only to Deep PTC sessions. They rely on the desktop "busy Ente
 
 ## Choose an execution environment
 
-Open **Settings → Plugins → Deep PTC**, choose an environment, save, and create a new **Deep PTC Mode** session.
+Open **Settings → Deep PTC**, choose an environment, save, and create a new **Deep PTC Mode** session.
 
 | Selection | Host | Executor / tool |
 | --- | --- | --- |
@@ -167,7 +173,7 @@ External plugins are discovered from what they actually register. Tools and work
 
 - Screen-control tools remain in the initial PTC SDK. They are not folded into the on-demand catalog and they are not quarantined after a failure. A tool qualifies when it sets `resident` (or `deepPtc.resident`), when its presentation carries the `dsh-go/view` key, when its name is `intent`, `collect`, `tap_xy`, or starts with `screen_`, or when its provider is marked as dsh-go, screen control, computer use, or phone control. Any other plugin can use the same `resident` flag. Ordinary extensions stay on demand.
 - Deep PTC does not declare dsh-go's own slots and does not replace its settings. Those forms still come from the Cordis schema, so the app renders them itself.
-- The side card reads its own state first. If a projection is missing or the session belongs to another preset, that part is left out; a failure in the card leaves the conversation, the input row and the screen-control chrome in place.
+- The panel reads its own state first. If a projection is missing or the session belongs to another preset, that part is left out; a failure in the panel leaves the conversation, the input row and the screen-control chrome in place.
 
 Phone screen control was not clicked on a device for this release. The guarantee above is the SDK membership, the quarantine rule, and the composer failure path.
 
@@ -200,10 +206,10 @@ A prompt changes the model's working tendency, not the real token limit or billi
 Requires Node `>=24` and DSH `>=0.2.2-rc.1`. The installer rejects the current package on DSH `0.2.1-rc.5` based on its manifest. macOS/Zsh checks cover configuration, argv and tool mounting.
 
 ```js
-plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.8.8" })
+plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.8.9" })
 // Or from a local checkout or archive:
 plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-mode" })
-// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.8.8.tgz"
+// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.8.9.tgz"
 ```
 
 Repository locator: `github:lishize20040802-rgb/dsh-deep-ptc-mode`. It installs content actually published there; a local upgrade does not publish to GitHub or npm.

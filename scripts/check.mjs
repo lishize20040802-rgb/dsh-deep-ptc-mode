@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { availableEnvironments, deriveDeepPtc, personaFrom, PRESET_META, SHELL_ROWS, SHELL_TOOLS, walkRows } from '../lib/model.mjs';
+import { availableEnvironments, deriveDeepPtc, personaFrom, PRESET_META, presetDescription, SHELL_ROWS, STATUS_SEPARATOR, SHELL_TOOLS, walkRows } from '../lib/model.mjs';
 import { OFFICIAL_PACKAGE, OFFICIAL_PRESET_ID, parseOfficialPreset } from '../lib/upstream.mjs';
 
 const root = new URL('../', import.meta.url);
@@ -64,7 +64,7 @@ export function assertPeerCoverage() {
 export function assertDerivation(upstream, preset, { environment = 'wsl', wslDistribution = '', platform = 'win32', foregroundSeconds = 30, ...more } = {}) {
   assert.equal(preset.id, PRESET_META.id);
   assert.equal(preset.name, PRESET_META.name);
-  assert.ok(typeof preset.description === 'string' && preset.description.includes('当前环境'));
+  assert.ok(typeof preset.description === 'string' && preset.description.startsWith(`${PRESET_META.name}${STATUS_SEPARATOR}`));
   assert.ok(Array.isArray(preset.plugins) && preset.plugins.length > 0);
 
   const derivedRows = flatten(preset.plugins);
@@ -131,7 +131,7 @@ export function assertDerivation(upstream, preset, { environment = 'wsl', wslDis
   assert.equal(guard[0].config.foregroundSeconds, foregroundSeconds);
   const compatibility = derivedRows.filter(row => row.name === 'dsh-deep-ptc-mode/tool-compatibility');
   assert.equal(compatibility.length, 1, 'one scoped compatibility observer, no extra capability');
-  assert.equal(preset.description.endsWith(`当前环境：${environment}${environment === 'wsl' && wslDistribution ? ` (${wslDistribution})` : ''}`), true);
+  assert.equal(preset.description, presetDescription({ kind: 'environment', environment, distribution: wslDistribution }));
 
   // Top-level order among untouched rows is preserved.
   const upstreamOrder = upstream.plugins.filter(row => !isPersona(row) && !isShell(row)).map(row => row.id);

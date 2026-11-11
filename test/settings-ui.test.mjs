@@ -83,48 +83,49 @@ test('settings follow DSH language changes while keeping the form and its saved 
 });
 
 test('DSH preset surfaces translate only the Deep PTC display copy and keep the real selection ID', async () => {
-  const row = { id: 'deep-ptc', name: '深度PTC模式', description: '原描述 当前环境：wsl (Ubuntu)' };
+  // The host publishes a language-neutral status line (presetDescription in lib/model.mjs).
+  const row = { id: 'deep-ptc', name: 'Deep PTC', description: 'Deep PTC · WSL (Ubuntu)' };
+  const safe = { ...row, description: 'Deep PTC · 安全模式 Safe mode: tool-jobs (m): boom' };
   const official = { id: 'ptc', name: 'Official PTC', description: 'Official description' };
-  const snapshot = { rows: [official, { ...row, description: '原描述 当前为安全模式' }], options: [official, row] };
+  const snapshots = [{ options: [official, row] }, { options: [official, safe] }];
   const picks = [];
   const specs = [
-    ['conversation.hero.agentPreset', undefined, 'useAgentPresetSeat', 'options'],
-    ['conversation.session.header.actions', 'agent-preset', 'useAgentPresets', 'options'],
-    ['settings.section', 'agent-presets', 'useAgentPresetSection', 'rows'],
+    ['conversation.hero.agentPreset', undefined, 'useAgentPresetSeat'],
+    ['conversation.session.header.actions', 'agent-preset', 'useAgentPresets'],
   ];
-  const entries = new Map(specs.map(([name, id, hook, field]) => [name, [{
+  const entries = new Map([...specs.map(([name, id, hook]) => [name, [{
     options: { id }, locale: 'settings.agentPreset',
     inject: () => ({ select: preset => picks.push(preset) }),
     component: props => React.createElement('div', null,
-      ...props[hook](state => state[field]).map(preset => React.createElement('button',
+      ...props[hook](state => state.options).map(preset => React.createElement('button',
         { key: preset.id, title: preset.description, onClick: () => props.select(preset.id) }, preset.name))),
-  }]]));
+  }]]), ['settings.section', []]]);
   const fixture = setup('win32', 'en', entries);
   const views = [];
   try {
-    for (const [name, , hook] of specs) {
+    for (const [index, [name, , hook]] of specs.entries()) {
       const [base, localized] = entries.get(name);
       assert.equal(localized.options.priority, -1);
       assert.equal(localized.inject, base.inject);
       await act(async () => views.push(Renderer.create(React.createElement(localized.component,
-        { ...localized.inject(), [hook]: select => select(snapshot) }))));
+        { ...localized.inject(), [hook]: select => select(snapshots[index]) }))));
     }
-    for (const [index, view] of views.entries()) {
-      const buttons = view.root.findAllByType('button');
-      assert.equal(buttons[0].props.children, 'Official PTC');
-      assert.equal(buttons[1].props.children, 'Deep PTC Mode');
-      assert.match(buttons[1].props.title, index === 2 ? /Safe mode is active/u : /Current environment: WSL \(Ubuntu\)/u);
-    }
+    // Deep PTC has its own settings page; the Agent presets entry is never shadowed.
+    assert.deepEqual(entries.get('settings.section').map(entry => entry.options.id), ['deep-ptc']);
+    const titles = () => views.map(view => view.root.findAllByType('button').map(node => [node.props.children, node.props.title]));
+    let [env, safeMode] = titles();
+    assert.deepEqual(env[0], ['Official PTC', 'Official description']);
+    assert.equal(env[1][0], 'Deep PTC Mode');
+    assert.match(env[1][1], /Current environment: WSL \(Ubuntu\)/u);
+    assert.match(safeMode[1][1], /Safe mode: tool-jobs \(m\): boom/u);
     await act(async () => views[0].root.findAllByType('button')[1].props.onClick());
     assert.deepEqual(picks, ['deep-ptc']);
     await act(async () => fixture.setLocale('zh'));
-    for (const [index, view] of views.entries()) {
-      const buttons = view.root.findAllByType('button');
-      assert.equal(buttons[0].props.children, 'Official PTC');
-      assert.equal(buttons[1].props.children, '深度 PTC 模式');
-      assert.match(buttons[1].props.title, index === 2 ? /当前为安全模式/u : /当前环境：WSL \(Ubuntu\)/u);
-    }
-    assert.deepEqual(row, { id: 'deep-ptc', name: '深度PTC模式', description: '原描述 当前环境：wsl (Ubuntu)' });
+    [env, safeMode] = titles();
+    assert.equal(env[1][0], '深度 PTC 模式');
+    assert.match(env[1][1], /当前环境：WSL \(Ubuntu\)/u);
+    assert.match(safeMode[1][1], /当前为安全模式：tool-jobs \(m\): boom/u);
+    assert.deepEqual(row, { id: 'deep-ptc', name: 'Deep PTC', description: 'Deep PTC · WSL (Ubuntu)' });
   } finally {
     await act(async () => { for (const view of views) view.unmount(); });
   }

@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.8.9 — 2026-11-11
+
+- 面板移入 DSH 官方入口：设置里新增独立的「深度 PTC」页（执行环境、界面特效、可复制的诊断信息）；右侧栏新增「深度 PTC」页签，也出现在右侧栏的新建页签引导中，停靠、浮动、全屏由 DSH 管理；输入框下方的小胶囊打开它，没有右侧栏的宿主在原地展开。原来悬浮的侧边卡片、挤压对话区的停靠列和右上角胶囊全部移除，右侧栏全屏时不再残留悬浮胶囊（#11），也不再遮挡消息（#12）。
+- 设置左导航不再出现两个「Agent 预设」（#9）：去掉对 `settings.section` 的同 id 影子注册，改为注册自己的设置页。
+- 新增「输出文件」：本会话写入或交付的文件，最新在前；最多三个位置，超出时折叠占一个位置。规则与 DSH 官方交付卡片一致，并包括 `run_code` 内写入的文件。
+- 新增 SSH：面板列出本会话连接过的主机及结果，以及 `~/.ssh/config` 的主机别名；模型获得本机 OpenSSH 客户端位置、主机别名和非交互使用规则（`BatchMode`、超时、认证失败即停、长任务转后台）。只读取主机名称、地址、用户和端口，不读取密钥。
+- 预设名称与描述改为与语言无关（`Deep PTC · PowerShell`），模式选择器和会话头部仍按 DSH 语言显示本地化文字；安全模式会写出宿主给出的原因。
+- 安全模式只在预设行真正启动失败时启用；仅在等待服务的行不再触发安全模式（#5）。修改设置或上游声明后重新尝试完整预设。
+- 识别 Microsoft Store 安装的 PowerShell 7：用 `lstat` 和 `readlink` 读取应用执行别名，不再把“拒绝访问”的路径一律当作存在；同一安装只列一次，标为「PowerShell 7（应用商店）」（#10）。
+- 界面特效轻量化（#6）：样式直接作用于 DSH 的 `data-composer-card`、`data-message-bubble` 等稳定属性，不再逐帧计算元素样式；循环动画只改透明度或位移；光点画布只覆盖输入框附近，像素密度上限 1.5，空闲或窗口隐藏时停止；不再定时轮询当前会话。检测到 dsh-claude-style、dsh-refined-ui 等外观插件时特效默认关闭，手动打开后保留选择（#7）。
+- 移除本插件添加的全部快捷键：Ctrl/⌘+K 命令面板（与 DSH「搜索会话」冲突）、`/`、Alt+↑/↓ 和 Ctrl+Alt+D。诊断信息移到设置页。
+- 人设新增「遵循用户指令」和「工作纪律」：不认识的词先问用户，用户不知道时再自行查证；用户说明优先于模型的既有认识；不擅自换方案；多项请求逐项核对；不虚报验证结果。
+- 预设身份兼容层在宿主 `composedPreset` 签名不符时不安装。
+
+- The panel moves into official DSH entry points: a Deep PTC settings page (environment, visual effects, copyable diagnostics), and a Deep PTC tab in the right sidebar, also listed on its new-tab guide, which DSH docks, floats and expands like its own tabs. The capsule under the composer opens it, or opens the panel in place on a host without a right sidebar. The floating side card, the docked column that narrowed the conversation and the top-right pill are gone, so nothing floats over a fullscreen sidebar (#11) or covers messages (#12).
+- The settings navigation lists Agent presets once (#9): the same-id shadow entry in `settings.section` is replaced by Deep PTC's own settings page.
+- Output files: files this conversation wrote or delivered, newest first, in three positions with overflow folded into one. The rule matches DSH's deliverables card and also counts files written from `run_code`.
+- SSH: the panel lists hosts this conversation reached with their outcome, and the host aliases from `~/.ssh/config`. The model is told where the OpenSSH client is, which aliases exist, and the non-interactive rules (`BatchMode`, timeouts, stop on authentication failure, long work as a background job). Only names, addresses, users and ports are read, never keys.
+- The preset name and description are language-neutral (`Deep PTC · PowerShell`); the mode picker and conversation header still show localized text. Safe mode publishes the host's reason.
+- Safe mode starts only when a preset row actually fails; rows still waiting for a service no longer trigger it (#5). Changing settings or upstream declarations retries the full preset.
+- Microsoft Store PowerShell 7 is discovered: the app execution alias is read with `lstat` and `readlink` instead of treating any access-denied path as present, and one install is listed once as "PowerShell 7 (Microsoft Store)" (#10).
+- Lighter visual effects (#6): styles target DSH's stable attributes such as `data-composer-card` and `data-message-bubble` instead of measuring elements every frame; looping animations change only opacity or transforms; the spark canvas covers only the composer area at no more than 1.5 device pixels per CSS pixel and stops when idle or hidden; the active session is no longer polled. With an appearance plugin such as dsh-claude-style or dsh-refined-ui installed, effects start off, and an explicit choice is kept (#7).
+- All keyboard shortcuts added by this plugin are removed: the Ctrl/Cmd+K palette (which collided with DSH's session search), `/`, Alt+Up/Down and Ctrl+Alt+D. Diagnostics move to the settings page.
+- The persona adds "Follow the user's instructions" and "Work discipline": ask the user about an unfamiliar term first and research it only when they do not know; the user's statements outrank the model's prior beliefs; no silent change of approach; check off every part of a multi-part request; never report unverified results as verified.
+- The preset identity layer is not installed when the host's `composedPreset` has an unexpected signature.
+
 ## 1.8.8 — 2026-11-10
 
 - 模式选择器、会话模式标签、设置页、侧栏和命令面板随 DSH 的语言设置切换中英文。切换语言会保留当前预设选择和未保存的表单输入。
