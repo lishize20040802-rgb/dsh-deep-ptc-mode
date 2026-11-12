@@ -110,6 +110,7 @@ async function withPanel(f, { sessions = {}, tools = noTools, activity, preset =
 const radios = view => view.root.findAllByProps({ role: 'radio' });
 const checked = view => radios(view).find(node => node.props['aria-checked']).props.children;
 const text = view => JSON.stringify(view.toJSON());
+const visibleText = node => typeof node === 'string' ? node : node.children.map(visibleText).join(' ');
 const sections = view => view.root.findAllByType('section').map(node => node.props['aria-label']);
 const jobs = (count, status) => Array.from({ length: count }, (_, index) => ({
   id: `${status}-${index}`, label: `${status}-${index}`, status, startedAt: index,
@@ -193,8 +194,8 @@ test('Windows Bash writes the environment and executable together from the panel
   });
 });
 
-test('subagents follow the official catalog and the live session list', async () => {
-  const f = fixture({ snapshot: windows({ hostPlatform: 'darwin', environment: 'auto', shellChoices: [] }) });
+test('subagents keep live state indicators and show only their names and same-row durations', async () => {
+  const f = fixture({ localeId: 'en', snapshot: windows({ hostPlatform: 'darwin', environment: 'auto', shellChoices: [] }) });
   const sessions = { projectionsBySession: { deep: { values: { subagentCatalog: [
     { id: 'child-1', label: 'Research', mode: 'continuable', activity: 'running' },
     { id: 'child-2', label: 'Report', mode: 'one-shot', activity: 'inactive' },
@@ -202,11 +203,13 @@ test('subagents follow the official catalog and the live session list', async ()
   byId: { 'child-3': { running: true }, 'child-2': { projectionValues: { subagentTiming: { settledMs: 75_000, lastTurnCompleted: true },
     tokenUsage: { uncachedInputTokens: 1000, outputTokens: 500, cacheReadTokens: 10_000, cacheWriteTokens: 0 } } } } };
   await withPanel(f, { sessions }, async view => {
-    assert.deepEqual(radios(view).map(node => node.props.children), ['envAuto', 'Zsh', 'Bash']);
+    assert.deepEqual(radios(view).map(node => node.props.children), ['Auto', 'Zsh', 'Bash']);
     const rows = view.root.findAllByProps({ className: 'dpt-agent' });
     assert.deepEqual(rows.map(node => node.props['data-state']), ['running', 'completed', 'running']);
-    assert.match(text(view), /agentCompleted · durationMinutes · tokens/u);
-    assert.deepEqual(sections(view).slice(0, 2), ['environment', 'agentsTitle']);
+    assert.deepEqual(rows.map(visibleText), [' Research', ' Report 1m 15s', ' Live']);
+    assert.equal(rows[1].children.at(-1).props.className, 'dpt-agent-duration');
+    assert.equal(rows[1].props['aria-label'], 'Report · Done', 'the state remains accessible without visible status text');
+    assert.deepEqual(sections(view).slice(0, 2), ['Execution environment', 'Subagents']);
   });
 });
 
@@ -216,7 +219,7 @@ test('output files show the newest first in three positions, and overflow takes 
     await withPanel(f, { activity: { v: 1, outputs: outputs(count), ssh: [] } }, async view => {
       const section = view.root.findByProps({ 'aria-label': 'outputsTitle' });
       const list = section.findAllByType('ul')[0];
-      const shown = list.children.filter(node => node.props.className === 'dpt-file');
+      const shown = list.children.filter(node => node.props.className !== 'dpt-files-more');
       assert.deepEqual(shown.map(node => node.findByProps({ className: 'dpt-file-name' }).props.children),
         outputs(count).slice(0, visible).map(row => row.path.split('\\').at(-1)), `${count} files`);
       assert.equal(list.children.length, visible + (hidden ? 1 : 0), 'at most three positions');
@@ -224,9 +227,69 @@ test('output files show the newest first in three positions, and overflow takes 
         assert.match(section.findByType('summary').props.children, new RegExp(`outputsMore ${hidden}`, 'u'));
         assert.equal(section.findAllByType('ul')[1].children.length, hidden);
       } else assert.equal(section.findAllByType('details').length, 0);
-      assert.equal(list.children[0].props.title, outputs(count)[0].path, 'the full path is the tooltip');
+      assert.equal(list.children[0].findByType('button').props.title, outputs(count)[0].path, 'the full path is the tooltip');
     });
   }
+});
+
+test('every output opens through the native file viewer with its own session and intact path', async () => {
+  const opened = [];
+  const f = fixture({ snapshot: windows(), sidebar: {
+    openResourceIn: (sessionId, address) => opened.push({ sessionId, address }),
+    openResource() { assert.fail('the session-scoped API must take precedence'); },
+  } });
+  const files = [
+    ['./设计图 #1?.svg', '设计图 #1?.svg'],
+    ['C:\\work\\图表 100%\\a#b?.txt', 'C:/work/图表 100%/a#b?.txt'],
+    ['/tmp/report & notes.txt', '/tmp/report & notes.txt'],
+    ['\\\\server\\share\\报告.pdf', '//server/share/报告.pdf'],
+  ];
+  const sessionId = 'workspace /?#';
+  await withPanel(f, { sessionId, activity: { outputs: files.map(([path], turn) => ({path, turn, kind:'produced'})) } }, async view => {
+    const section = view.root.findByProps({ 'aria-label': 'outputsTitle' });
+    const buttons = section.findAllByType('button');
+    assert.equal(buttons.length, 4, 'folded outputs are also interactive');
+    for (const button of buttons) await act(async () => button.props.onClick());
+    assert.equal(opened.length, 4);
+    for (const [index, call] of opened.entries()) {
+      assert.equal(call.sessionId, sessionId);
+      const url = new URL(call.address);
+      assert.equal(url.protocol, 'dsh-resource:');
+      assert.equal(url.hostname, 'file');
+      assert.equal(url.search, '');
+      assert.equal(url.hash, '');
+      const [, scope, id, ...path] = url.pathname.split('/').map(decodeURIComponent);
+      assert.equal(scope, 'session');
+      assert.equal(id, sessionId);
+      assert.equal(path.join('/'), files[index][1]);
+    }
+  });
+});
+
+test('output opening supports the older viewer API and reports a failed preview without breaking the panel', async () => {
+  let fail = true;
+  const opened = [];
+  const f = fixture({ localeId: 'zh', snapshot: windows(), sidebar: {
+    async openResource(address) {
+      if (fail) throw new Error('No viewer claims this file');
+      opened.push(address);
+    },
+  } });
+  await withPanel(f, { activity: { outputs: outputs(1) } }, async view => {
+    const section = view.root.findByProps({ 'aria-label': '输出文件' });
+    await act(async () => section.findByType('button').props.onClick());
+    assert.match(visibleText(section.findByProps({role:'status'})), /无法打开文件/u);
+    assert.equal(view.root.findAllByProps({className:'dpt-panel'}).length, 1);
+    fail = false;
+    await act(async () => section.findByType('button').props.onClick());
+    assert.equal(opened.length, 1);
+    assert.equal(section.findAllByProps({role:'status'}).length, 0);
+  });
+  await withPanel(fixture({snapshot:windows()}), {activity:{outputs:outputs(1)}}, async view => {
+    const section = view.root.findByProps({'aria-label':'outputsTitle'});
+    await act(async () => section.findByType('button').props.onClick());
+    assert.match(visibleText(section.findByProps({role:'status'})), /outputOpenFailed/u);
+  });
 });
 
 test('SSH lists reached hosts first with their outcome, then configured aliases', async () => {

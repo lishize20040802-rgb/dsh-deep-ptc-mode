@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.3 — 2026-11-12
+
+- 侧边输出文件可点击，使用 DSH 原生文件资源接口按所属会话打开；兼容折叠列表、相对路径、Windows/UNC 路径及带中文和特殊字符的文件名，预览不可用时显示提示。
+- 子代理行精简为状态指示、名字与同一行最右侧的用时，移除可见状态文字、统计摘要和 token 消耗。状态仍供辅助阅读工具使用。
+- Output files open through DSH's native session-scoped viewer, including folded entries, relative/Windows/UNC paths and special characters; unavailable previews show a message.
+- Subagent rows show the state indicator, name and right-aligned duration. Visible state text, summaries and token usage are removed; state remains available to assistive technology.
+
 ## 1.9.2 — 2026-11-12
 
 - 文档与简介说明 DrawAI 绘图、归藏设计技能、Agentero 论文工具、dsh-ops 执行环境及 DSH Go 连接辅助的协作方式，并标明验证范围。26 个真实工具通过隔离注册、发现、选用和宿主双语言 SDK 渲染；DrawAI 的文件编辑、SVG 导出和 revision 冲突保护通过。统一分类层将明确的并发编辑冲突归为输入状态过旧，修复连续旧 revision 拒写导致工具误隔离；保留实现缺陷、不可用和部分完成的处理。

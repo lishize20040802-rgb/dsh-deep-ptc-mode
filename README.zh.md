@@ -1,6 +1,6 @@
 # 深度 PTC 模式
 
-[English](README.md) · MIT · 当前版本 **1.9.2**
+[English](README.md) · MIT · 当前版本 **1.9.3**
 
 [更新日志](CHANGELOG.md) · [测试报告](TEST_REPORT.md) · [插件协作与验证范围](COMPATIBILITY.md)
 
@@ -69,9 +69,9 @@ Deep PTC 的模式名称、设置页和会话界面会随 DSH「设置 → 通�
 - **设置 → 深度 PTC**：执行环境与 Shell、界面特效开关，以及可复制的诊断信息（反馈界面问题时附上）。
 - **对话侧边的「深度 PTC」面板**。空间充足时默认显示，并随对话区尺寸调整。原生侧栏全屏覆盖对话时会隐藏，窄屏可通过下方胶囊展开。
   - **执行环境**：WSL、PowerShell、原生 Bash 或 Zsh，对之后新建的深度 PTC 会话生效。
-  - **子代理**：名称、状态、用时和 token；点击在官方右侧栏打开该子代理的对话。
+  - **子代理**：状态指示与名称在左，用时在同一行的最右侧；点击在官方右侧栏打开该子代理的对话。
   - **后台任务**：最多六个位置，运行中优先且最多五条，已结束最多三条，超出部分合为一条可展开记录。
-  - **输出文件**：本会话写入或交付的文件，最新的在前；最多三个位置，超出时折叠占一个位置。规则与 DSH 官方的交付卡片一致，并包括 `run_code` 里写入的文件。
+  - **输出文件**：本会话写入或交付的文件，最新的在前；点击通过 DSH 原生文件预览打开对应文件。最多三个位置，超出时折叠占一个位置。规则与 DSH 官方的交付卡片一致，并包括 `run_code` 里写入的文件。
   - **SSH 连接**：本会话连接过的主机（成功或失败）与 `~/.ssh/config` 中的主机别名。
   - **工具状态**：“重载所有工具状态”按钮，以及调用失败的外部工具（如有）。
 - **输入框下方的小胶囊**显示执行环境、子代理数和工具提醒，点击展开或收起独立的侧边面板。1.9.0 保存的旧侧栏页签会显示迁移提示。
@@ -218,10 +218,10 @@ Deep PTC 可以把其他插件提供的能力接进同一项任务：用 **DrawA
 本地目录或构建产物可通过插件管理器安装：
 
 ```js
-plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.9.2" })
+plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.9.3" })
 // 也可从本地目录或安装包安装：
 plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-mode" })
-// 或 target: "C:\\path\\to\\dsh-deep-ptc-mode-1.9.2.tgz"
+// 或 target: "C:\\path\\to\\dsh-deep-ptc-mode-1.9.3.tgz"
 ```
 
 GitHub 地址：`github:lishize20040802-rgb/dsh-deep-ptc-mode`。该地址安装远端实际内容；本地升级不会自动发布到 GitHub/npm。

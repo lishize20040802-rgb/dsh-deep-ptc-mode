@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Deep PTC Mode",
-    "description": "Deep PTC builds on official PTC with interruptible jobs, selectable shells and a conversation-side panel. Use DrawAI, guizang-design and Agentero tools and skills on demand, with general SSH and DSH Go connection assistance. The bottom capsule toggles the panel; the UI follows DSH's Chinese or English setting.",
+    "description": "Deep PTC builds on official PTC with interruptible jobs, selectable shells and a conversation-side panel. Click output files to open them; compact subagent rows show names and duration. Use drawing, design and research tools on demand, with general SSH and DSH Go assistance. The UI follows DSH's Chinese or English setting.",
     "detail": "README.md"
   }
 }

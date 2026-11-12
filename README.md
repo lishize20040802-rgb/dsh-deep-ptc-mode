@@ -1,6 +1,6 @@
 # Deep PTC mode
 
-[中文](README.zh.md) · MIT · **1.9.2**
+[中文](README.zh.md) · MIT · **1.9.3**
 
 [Changelog](CHANGELOG.md) · [Test report](TEST_REPORT.md) · [Plugin workflows and verification](COMPATIBILITY.md)
 
@@ -69,9 +69,9 @@ The Deep PTC mode label, settings, and conversation UI switch between Chinese an
 - **Settings → Deep PTC**: execution environment and shell, the visual effects switch, and copyable diagnostics to attach to interface bug reports.
 - **The Deep PTC panel beside the conversation** is open by default when there is room. It follows the conversation width and hides under a fullscreen native sidebar. On narrow screens the bottom capsule expands it.
   - **Execution environment**: WSL, PowerShell, native Bash or Zsh, for newly created Deep PTC sessions.
-  - **Subagents**: name, state, duration and tokens; a row opens that subagent's chat in the official right sidebar.
+  - **Subagents**: the state indicator and name on the left, with duration at the right of the same row; a row opens that subagent's chat in the official right sidebar.
   - **Background jobs**: six positions, up to five active jobs first and up to three finished jobs; overflow folds into one expandable row.
-  - **Output files**: files this conversation wrote or delivered, newest first, in three positions; overflow folds into one of them. The rule matches DSH's own deliverables card and also counts files written from `run_code`.
+  - **Output files**: files this conversation wrote or delivered, newest first; click to open the file in DSH's native preview. Three positions are available, with overflow folded into one of them. The rule matches DSH's own deliverables card and also counts files written from `run_code`.
   - **SSH connections**: hosts this conversation reached, with their outcome, and the host aliases in `~/.ssh/config`.
   - **Tool state**: the "Reload all tool states" button and, when present, the failed external tools.
 - **The capsule under the composer** shows the environment, subagent count and tool notices, and toggles the independent side panel. Saved 1.9.0 sidebar tabs show a migration hint.
@@ -214,10 +214,10 @@ A prompt changes the model's working tendency, not the real token limit or billi
 Requires Node `>=24` and DSH `>=0.2.2-rc.1`. The installer rejects the current package on DSH `0.2.1-rc.5` based on its manifest. macOS/Zsh checks cover configuration, argv and tool mounting.
 
 ```js
-plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.9.2" })
+plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.9.3" })
 // Or from a local checkout or archive:
 plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-mode" })
-// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.9.2.tgz"
+// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.9.3.tgz"
 ```
 
 Repository locator: `github:lishize20040802-rgb/dsh-deep-ptc-mode`. It installs content actually published there; a local upgrade does not publish to GitHub or npm.
