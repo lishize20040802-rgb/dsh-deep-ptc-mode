@@ -9,15 +9,30 @@ import Renderer, { act } from 'react-test-renderer';
 const plain = value => JSON.parse(JSON.stringify(value));
 
 function fakeDocument() {
-  return { querySelectorAll: () => [], querySelector: () => null, body: { hasAttribute: () => false }, addEventListener() {}, removeEventListener() {} };
+  const attributes = new Set();
+  const document = { sessionId: 'deep', width: 1200, fullscreen: false };
+  const parent = { getBoundingClientRect: () => ({ top: 0, right: document.width, bottom: 800, width: document.width, height: 800 }) };
+  const region = { parentElement: parent, isConnected: true,
+    getBoundingClientRect: parent.getBoundingClientRect,
+    getAttribute: () => document.sessionId, closest: () => null, querySelector: () => null,
+    toggleAttribute: (name, on) => on ? attributes.add(name) : attributes.delete(name),
+    removeAttribute: name => attributes.delete(name), style: { setProperty() {}, removeProperty() {} },
+    contains: node => node === region,
+  };
+  return Object.assign(document, { region, attributes,
+    querySelectorAll: selector => selector === '[data-conversation-region="chat"]' ? [region]
+      : selector.startsWith('[data-sidebar-right-panel') && document.fullscreen ? [{ getClientRects: () => [{}] }] : [],
+    querySelector: () => null, body: { hasAttribute: () => false }, addEventListener() {}, removeEventListener() {} });
 }
 
 function fixture({ snapshot, mutate = async () => true, outcome = { ok: true, value: { commandId: 'c', result: { kind: 'success' } } },
   storage = new Map(), browser = {}, activeEffects = false, jobsService, localeId, sidebar } = {}) {
   let plugin;
+  const document = browser.document ?? fakeDocument();
   const slots = new Map();
   const writes = [];
   const calls = [];
+  const copies = [];
   const tabTypes = [];
   let current = snapshot;
   const listeners = new Set();
@@ -39,10 +54,11 @@ function fixture({ snapshot, mutate = async () => true, outcome = { ok: true, va
     },
   };
   vm.runInNewContext(readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'), {
-    window: { __ModuleLoader__: { load: definition => { plugin = definition.factory(() => React); } },
+    window: { __ModuleLoader__: { load: definition => { plugin = definition.factory(name => name === 'react-dom' ? { createPortal: node => node } : React); } },
       innerWidth: 1200, innerHeight: 800, addEventListener() {}, removeEventListener() {} },
-    document: fakeDocument(), setInterval, clearInterval, setTimeout, clearTimeout, URLSearchParams,
-    navigator: { userAgent: 'test', clipboard: { writeText: async () => {} } },
+    document, setInterval, clearInterval, setTimeout, clearTimeout, URLSearchParams,
+    requestAnimationFrame: callback => setTimeout(callback, 0), cancelAnimationFrame: clearTimeout,
+    navigator: { userAgent: 'test', clipboard: { writeText: async text => copies.push(text) } },
     localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
     ...browser,
   });
@@ -66,8 +82,8 @@ function fixture({ snapshot, mutate = async () => true, outcome = { ok: true, va
   };
   ctx.inject = (deps, callback) => callback(ctx);
   plugin.apply(ctx);
-  return { slots, tabTypes, panel: slots.get('sidebar.right.pane.tab#dsh-deep-ptc-mode'), dock: slots.get('conversation.composer.dock#deep-ptc-side'),
-    writes, calls, dispose: () => effects.forEach(cleanup => cleanup()),
+  return { slots, tabTypes, document, legacy: slots.get('sidebar.right.pane.tab#dsh-deep-ptc-mode'), dock: slots.get('conversation.composer.dock#deep-ptc-side'),
+    writes, calls, copies, dispose: () => effects.forEach(cleanup => cleanup()),
     setLocale: id => { localeId = id; localeRevision++; for (const listener of localeListeners) listener(); } };
 }
 
@@ -79,7 +95,8 @@ const noTools = { v: 1, epoch: 0, blocked: [], report: null };
 
 // Render one conversation's Deep PTC panel (or its capsule) and unmount it even when an assertion
 // fails, so timers never keep the process alive.
-async function withPanel(f, { sessions = {}, tools = noTools, activity, preset = 'deep-ptc', sessionId = 'deep', entry = f.panel } = {}, body) {
+async function withPanel(f, { sessions = {}, tools = noTools, activity, preset = 'deep-ptc', sessionId = 'deep', entry = f.dock } = {}, body) {
+  f.document.sessionId = sessionId;
   const injected = entry.slot.inject(sessionId);
   const jobsStore = injected.hooks?.jobs;
   let view;
@@ -101,10 +118,10 @@ const jobs = (count, status) => Array.from({ length: count }, (_, index) => ({
 const outputs = count => Array.from({ length: count }, (_, index) => ({
   path: `C:\\work\\out-${count - index}.md`, kind: index === 0 ? 'presented' : 'produced', turn: count - index }));
 
-test('the panel is an official right sidebar page type, listed on its guide, with its own settings page', () => {
+test('the panel uses the composer dock and its own settings page, with a hint for saved sidebar tabs', () => {
   const f = fixture({ snapshot: windows() });
   assert.deepEqual(plain(f.tabTypes.map(type => ({ id: type.id, kind: type.kind, guide: type.guide.map(entry => entry.id) }))),
-    [{ id: 'dsh-deep-ptc-mode', kind: 'deep-ptc', guide: ['deep-ptc'] }]);
+    [{ id: 'dsh-deep-ptc-mode', kind: 'deep-ptc', guide: [] }]);
   assert.equal(f.tabTypes[0].title(), 'sideTitle');
   assert.ok(f.slots.has('sidebar.right.pane.tab.title#dsh-deep-ptc-mode'));
   assert.equal(f.slots.get('settings.section#deep-ptc').slot.label(), 'title');
@@ -225,21 +242,79 @@ test('SSH lists reached hosts first with their outcome, then configured aliases'
   await withPanel(fixture({ snapshot: windows({ sshClient: '' }) }), {}, async view => assert.match(text(view), /sshNoClient/u));
 });
 
-test('the capsule opens the right sidebar tab, or the panel in place without one', async () => {
+test('SSH exposes a general connection check and optional DSH Go connection details', async () => {
+  const f = fixture({ localeId: 'en', snapshot: windows({ sshHosts: [
+    { alias: 'web1', hostName: '10.0.0.1', user: 'deploy', port: '2222' },
+  ] }) });
+  await withPanel(f, {}, async view => {
+    const section = view.root.findByProps({ 'aria-label': 'SSH connections' });
+    await act(async () => section.findAllByType('button').find(button => button.props.children === 'Copy SSH check command').props.onClick());
+    assert.equal(f.copies[0], "ssh -o BatchMode=yes -o ConnectTimeout=10 -o ConnectionAttempts=1 -- 'web1' hostname");
+    await act(async () => section.findAllByType('button').find(button => button.props.children === 'Copy DSH Go connection details').props.onClick());
+    assert.match(f.copies[1], /Host: 10\.0\.0\.1\nPort: 2222\nUser: deploy/u);
+    assert.match(f.copies[1], /attach-only.*Windows/u);
+    assert.equal(f.calls.length, 0, 'copying information starts no connection');
+  });
+  for (const environment of ['powershell', 'bash']) {
+    const quoted = fixture({ localeId: 'en', snapshot: windows({ environment, sshHosts: [{ alias: "test'host" }] }) });
+    await withPanel(quoted, {}, async view => {
+      const copy = view.root.findAllByType('button').find(button => button.props.children === 'Copy SSH check command');
+      await act(async () => copy.props.onClick());
+      const target = environment === 'powershell' ? "'test''host'" : "'test'\\''host'";
+      assert.ok(quoted.copies[0].endsWith(`-- ${target} hostname`));
+    });
+  }
+});
+
+test('the bottom capsule collapses the independent side panel without opening the native sidebar', async () => {
   const opened = [];
   const f = fixture({ snapshot: windows(), sidebar: { openTab: kind => opened.push(kind) } });
   await withPanel(f, { entry: f.dock }, async view => {
     assert.match(text(view), /PowerShell/u);
+    assert.equal(view.root.findAllByProps({ className: 'dpt-sidecar' }).length, 1);
+    assert.ok(f.document.attributes.has('data-dpt-panel-open'));
     await act(async () => view.root.findByProps({ className: 'dpt-capsule' }).props.onClick());
-    assert.deepEqual(opened, ['deep-ptc']);
+    assert.deepEqual(opened, []);
     assert.equal(view.root.findAllByProps({ className: 'dpt-panel' }).length, 0);
   });
   const g = fixture({ snapshot: windows() });
+  g.document.width = 600;
   await withPanel(g, { entry: g.dock }, async view => {
+    assert.equal(view.root.findAllByProps({ className: 'dpt-sidecar' }).length, 0);
     await act(async () => view.root.findByProps({ className: 'dpt-capsule' }).props.onClick());
-    assert.equal(view.root.findByProps({ className: 'dpt-panel' }).props['data-inline'], '');
+    assert.equal(view.root.findByProps({ className: 'dpt-sidecar' }).props['data-floating'], '');
   });
   await withPanel(g, { entry: g.dock, preset: 'standard' }, async view => assert.equal(view.toJSON(), null));
+});
+
+test('the side panel follows conversation resizing and disappears under a fullscreen native sidebar', async () => {
+  const document = fakeDocument();
+  let changed;
+  const f = fixture({ snapshot: windows(), browser: {
+    document, MutationObserver: class {
+      constructor(callback) { changed = callback; }
+      observe() {}
+      disconnect() {}
+    },
+  } });
+  const layoutChanged = async () => act(async () => {
+    changed([{ type: 'attributes', target: document.region }]);
+    await new Promise(resolve => setTimeout(resolve, 5));
+  });
+  await withPanel(f, {}, async view => {
+    assert.equal(view.root.findByProps({ className: 'dpt-sidecar' }).props.style.right, 0);
+    document.width = 1000;
+    await layoutChanged();
+    assert.equal(view.root.findByProps({ className: 'dpt-sidecar' }).props.style.right, 200);
+    document.fullscreen = true;
+    await layoutChanged();
+    assert.equal(view.root.findAllByProps({ className: 'dpt-sidecar' }).length, 0);
+    assert.equal(document.attributes.has('data-dpt-panel-open'), false);
+    document.fullscreen = false;
+    await layoutChanged();
+    assert.equal(view.root.findAllByProps({ className: 'dpt-sidecar' }).length, 1);
+  });
+  assert.equal(document.attributes.has('data-dpt-panel-open'), false);
 });
 
 test('the effects switch removes and restores the effects at once and remembers the choice', async () => {
@@ -423,10 +498,10 @@ test('without settings or a readable tool state the panel keeps the reload butto
   });
 });
 
-test('in other modes the panel offers only the environment for new Deep PTC sessions', async () => {
+test('other modes have no Deep PTC side panel or capsule', async () => {
   const f = fixture({ snapshot: windows() });
   await withPanel(f, { preset: 'standard', activity: { v: 1, outputs: outputs(2), ssh: [{ host: 'x-host', ok: true, count: 1, turn: 1 }] } }, async view => {
-    assert.match(text(view), /sideOtherMode/u);
+    assert.equal(view.toJSON(), null);
     assert.equal(view.root.findAllByType('button').some(node => node.props.children === 'toolReset'), false);
     assert.equal(view.root.findAllByProps({ 'aria-label': 'outputsTitle' }).length, 0);
     assert.doesNotMatch(text(view), /x-host/u, 'another mode\'s SSH use is not listed');

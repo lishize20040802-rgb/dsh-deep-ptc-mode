@@ -1,12 +1,12 @@
 # Deep PTC mode
 
-[中文](README.zh.md) · MIT · **1.9.1**
+[中文](README.zh.md) · MIT · **1.9.2**
 
-[Changelog](CHANGELOG.md) · [Test report](TEST_REPORT.md)
+[Changelog](CHANGELOG.md) · [Test report](TEST_REPORT.md) · [Plugin workflows and verification](COMPATIBILITY.md)
 
 Deep PTC is a DeepSeek Harness agent mode with progress reports, clarifying questions, task-size planning, and interruptible background work. It builds on the installed official PTC preset with selectable shells, on-demand tools and skills, and a two-layer preset identity adapter for third-party plugins.
 
-1.9.0 moves the panel into DSH's official entry points: a Deep PTC settings page, and a Deep PTC tab in the right sidebar (environment, subagents, background jobs, output files, SSH connections, tool state) that the capsule under the composer opens. Visual effects render lightly and start off when an appearance plugin is installed. The plugin adds no keyboard shortcuts.
+The panel sits beside the conversation and shows the environment, subagents, jobs, output files, SSH connections and tool state. The capsule below the composer expands or collapses it. Deep PTC also has its own settings page. Visual effects are lightweight and start off when an appearance plugin is installed.
 
 ## Five basic problems
 
@@ -67,14 +67,14 @@ After each turn, a card at the end of that turn in the conversation (where offic
 The Deep PTC mode label, settings, and conversation UI switch between Chinese and English with DSH **Settings → General → Language**. Every entry point uses an official DSH extension point; the plugin changes no host layout and registers no keyboard shortcuts.
 
 - **Settings → Deep PTC**: execution environment and shell, the visual effects switch, and copyable diagnostics to attach to interface bug reports.
-- **The Deep PTC tab in the right sidebar** (also offered on the sidebar's new-tab guide). DSH docks, floats, splits and expands it like its own tabs.
+- **The Deep PTC panel beside the conversation** is open by default when there is room. It follows the conversation width and hides under a fullscreen native sidebar. On narrow screens the bottom capsule expands it.
   - **Execution environment**: WSL, PowerShell, native Bash or Zsh, for newly created Deep PTC sessions.
   - **Subagents**: name, state, duration and tokens; a row opens that subagent's chat in the official right sidebar.
   - **Background jobs**: six positions, up to five active jobs first and up to three finished jobs; overflow folds into one expandable row.
   - **Output files**: files this conversation wrote or delivered, newest first, in three positions; overflow folds into one of them. The rule matches DSH's own deliverables card and also counts files written from `run_code`.
   - **SSH connections**: hosts this conversation reached, with their outcome, and the host aliases in `~/.ssh/config`.
   - **Tool state**: the "Reload all tool states" button and, when present, the failed external tools.
-- **The capsule under the composer** shows the environment, subagent count and tool notices, and opens the tab. On a host without a right sidebar it opens the panel in place. It lives in the composer's own dock, so it never covers messages and is covered with the conversation when the sidebar goes fullscreen.
+- **The capsule under the composer** shows the environment, subagent count and tool notices, and toggles the independent side panel. Saved 1.9.0 sidebar tabs show a migration hint.
 
 Visual effects apply **only while the conversation on screen is a Deep PTC session**: calmer light and dark colours and fonts, a hairline on the focused composer, a blue gradient send button, soft blue user bubbles, pointer spotlight, click ripple, a magnetic send button; while running, a glowing composer, a send-button ring and sparks rising above the composer.
 
@@ -83,6 +83,10 @@ Visual effects apply **only while the conversation on screen is a Deep PTC sessi
 - Everything honours reduced motion.
 
 ## SSH
+
+The panel can copy a general SSH check command or DSH Go connection details. Normal SSH, SCP, SFTP and forwarding work uses OpenSSH. DSH Go can start managed `dsh web` on a POSIX remote host, or attach to an existing service on Windows. Use the actual service port and configure authentication in the client. Copying these details prepares information.
+
+DSH allows a blank session to select another preset before its first turn starts. It locks that choice once a turn has started. Deep PTC command gates follow the host's current selection, which is also used by the UI.
 
 Deep PTC reaches external hosts through the local OpenSSH client in the selected environment's shell; it adds no transport of its own. The model is told where the client is, which host aliases `~/.ssh/config` defines (names, addresses, users and ports only, never keys), and how to use them: always non-interactive (`BatchMode=yes`, a connect timeout), no interactive remote shell, never waiting for a password or host-key prompt; on an authentication failure it stops and tells you instead of trying other credentials or disabling host-key checking; long remote work runs as a background job. In WSL, SSH runs inside the distribution with its own `~/.ssh`.
 
@@ -167,6 +171,10 @@ The lab is an environment for designing and trying a plugin in this process: ins
 
 ## dsh-go and other external tools
 
+Deep PTC can use other plugins within the same task: **DrawAI** reads, edits and exports diagrams; **guizang-design** supplies page, slide, social-card and writing skills; **Agentero** supplies paper and note tools; **dsh-ops** recognizes the preset for its execution environments; and **DSH Go** receives screen-tool availability and SSH connection assistance. **dsh-context** can read skills from the current Agent's service for context inspection.
+
+Version 1.9.2 prevents repeated stale-revision rejections from quarantining a working editor. Twenty-six actual DrawAI, guizang-design and Agentero host tools passed isolated interface checks; DrawAI file editing and SVG export also passed. Design generation, the paper CLI, phone connections and video rendering have their own dependencies and verification limits. See the [plugin workflow details](COMPATIBILITY.md).
+
 External plugins are discovered from what they actually register. Tools and workflows are chosen by capability first. Official PTC tools stay available and are the fallback when a third-party tool fails. No external plugin, including dsh-go, is a dependency of this package.
 
 **dsh-go** (the phone app and its screen-control surface) stays usable inside a Deep PTC session:
@@ -206,10 +214,10 @@ A prompt changes the model's working tendency, not the real token limit or billi
 Requires Node `>=24` and DSH `>=0.2.2-rc.1`. The installer rejects the current package on DSH `0.2.1-rc.5` based on its manifest. macOS/Zsh checks cover configuration, argv and tool mounting.
 
 ```js
-plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.9.1" })
+plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.9.2" })
 // Or from a local checkout or archive:
 plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-mode" })
-// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.9.1.tgz"
+// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.9.2.tgz"
 ```
 
 Repository locator: `github:lishize20040802-rgb/dsh-deep-ptc-mode`. It installs content actually published there; a local upgrade does not publish to GitHub or npm.
@@ -232,7 +240,7 @@ Prefer the UI, which uses revisioned, atomic Host form writes.
 
 ## Mode isolation
 
-Every runtime feature serves only `deep-ptc` sessions: the tool directory, tool state and execution environment are still mounted by the Deep PTC preset; the skill-card state projection is registered once at the plugin root, but its `init(header)` activates only when `agentPreset === 'deep-ptc'`, so other sessions keep an empty, non-folding state. The command, `agent/pre-step` and client dock each check the preset again. Other modes only see the plugin settings page; the preset-identity layer returns any non-`deep-ptc` exact id unchanged.
+Runtime features serve sessions currently selected as `deep-ptc`. The preset mounts its tool directory, tool state and execution environment. The skill projection starts from the creation header and folds valid host `agent-preset/selected` events. Commands, `agent/pre-step` and the client panel check the current selection. Other modes keep empty skill state, and a missing creation header starts inactive.
 
 ## Compatibility and development
 

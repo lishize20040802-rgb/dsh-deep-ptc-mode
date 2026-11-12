@@ -71,6 +71,18 @@ test('the projection activates only for a Deep PTC header', () => {
   assert.equal(blankSkillState().active, true);
 });
 
+test('a blank-session preset selection activates and deactivates the skill projection', () => {
+  let state = blankSkillState({ agentPreset: 'standard' });
+  state = foldSkillState(state, { type: 'agent-preset/selected', data: { agentPreset: 'deep-ptc' } });
+  state = foldSkillState(state, turnStart(1));
+  state = foldSkillState(state, skill);
+  assert.equal(state.active, true);
+  assert.equal(state.skills.length, 1);
+  state = foldSkillState(state, { type: 'agent-preset/selected', data: { agentPreset: 'standard' } });
+  assert.equal(state.active, false);
+  assert.deepEqual(state.skills, []);
+  assert.equal(foldSkillState(state, skill), state);
+});
 test('the projection is inert for every non-Deep-PTC session', () => {
   let state = blankSkillState({ agentPreset: 'standard' });
   assert.equal(state.active, false);

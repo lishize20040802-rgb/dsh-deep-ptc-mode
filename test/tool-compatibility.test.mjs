@@ -216,6 +216,44 @@ test('a normal result reporting on its own subject is not a tool failure', () =>
   assert.equal(f.state.status(f.agent).blocked.length, 0);
 });
 
+test('optimistic edit conflicts allow rereading without quarantining a working provider', () => {
+  const f = setup();
+  const messages = [
+    'revision conflict：你给的是 old，画布现在是 new —— 重新 diagram_read 一次',
+    '画布已被其他编辑器修改，请重试',
+    '文件已被其他编辑器修改，请重试加入结果',
+    'stale revision: reload before saving',
+    'ETag mismatch: reread the document',
+  ];
+  for (const message of messages) {
+    const result = { isError: true, error: { message } };
+    assert.equal(classifyToolOutcome({}, result).kind, 'input');
+    for (let i = 0; i <= QUARANTINE_STRIKES; i++) f.state.observe(f.call(), result);
+  }
+  for (const code of ['REVISION_CONFLICT', 'STALE_REVISION', 'ETAG_MISMATCH', 'PRECONDITION_FAILED']) {
+    const result = { isError: true, error: { info: { code }, message: 'Reread the resource' } };
+    assert.equal(classifyToolOutcome({}, result).kind, 'input');
+    f.state.observe(f.call(), result);
+  }
+  assert.equal(f.state.guard(f.call()), undefined);
+  f.state.observe(f.call(), { value: { saved: true } });
+  assert.equal(f.state.status(f.agent).blocked.length, 0);
+});
+
+test('edit conflict wording does not hide defects, unavailable providers or partial effects', () => {
+  for (const message of ['dependency version conflict', 'Cannot read properties of undefined (reading revision conflict)',
+    'line 409: editor crashed', 'failed loading revision conflict resolver']) {
+    assert.equal(classifyToolOutcome({}, { isError: true, error: { message } }).kind, 'failure');
+  }
+  assert.equal(classifyToolOutcome({}, { isError: true, error: { message: "Cannot find module 'revision conflict'" } }).kind, 'unavailable');
+  assert.equal(classifyToolOutcome({}, { isError: true, error: { info: { code: 'WORKER_UNAVAILABLE' }, message: 'revision conflict' } }).kind, 'unavailable');
+  const partial = { value: { status: 'partial', failure: { code: 'REVISION_CONFLICT', effectState: 'partial' } } };
+  assert.equal(classifyToolOutcome({}, partial).kind, 'partial');
+  const f = setup();
+  f.state.observe(f.call(), partial);
+  assert.match(f.state.guard(f.call()), /quarantined/);
+});
+
 test('a name no plugin provides is not recorded as a failed plugin', () => {
   const f = setup();
   f.state.observe(f.call('tool_that_does_not_exist'), { isError: true, error: { code: 'UNKNOWN_TOOL' } });

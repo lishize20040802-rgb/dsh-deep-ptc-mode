@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.9.2 — 2026-11-12
+
+- 文档与简介说明 DrawAI 绘图、归藏设计技能、Agentero 论文工具、dsh-ops 执行环境及 DSH Go 连接辅助的协作方式，并标明验证范围。26 个真实工具通过隔离注册、发现、选用和宿主双语言 SDK 渲染；DrawAI 的文件编辑、SVG 导出和 revision 冲突保护通过。统一分类层将明确的并发编辑冲突归为输入状态过旧，修复连续旧 revision 拒写导致工具误隔离；保留实现缺陷、不可用和部分完成的处理。
+- Document the workflows and verification limits for DrawAI diagrams, guizang-design skills, Agentero paper tools, dsh-ops execution environments and DSH Go connection assistance. Twenty-six actual tools passed isolated interface checks and both host SDK renderers. DrawAI file edits, SVG export and revision-conflict protection passed. Classify explicit optimistic-lock conflicts as stale input so repeated safe rejections cannot quarantine a working editor; retain defect, unavailability and partial-effect handling.
+
+- 面板回到对话区侧边，保留输入框下方的胶囊，使用布局事件更新位置。旧侧栏页签显示迁移提示。
+- 命令与 Skill 投影跟随宿主当前预设选择，修复空白会话先创建再选择 Deep PTC 时的模式门禁。
+- 通用 SSH 增加检查命令复制，并提供按需复制的 DSH Go 连接资料。
+
+- Restore the conversation-side panel and retain the capsule below the composer. Layout events update its position. Old sidebar tabs show a migration hint.
+- Follow the host's current preset selection in command gates and the skill projection, including a blank session switched to Deep PTC after creation.
+- Add a general SSH check-command copy action and optional DSH Go connection details.
+
 ## 1.9.1 — 2026-11-11
 
 - 更新 npm 与 DSH 插件管理器中的简介：写明右侧栏面板（子代理、后台任务、输出文件、SSH 连接）以及对官方与第三方插件的兼容；README 的「五个基本问题」补充新的提问与工作纪律规则。代码与 1.9.0 相同。

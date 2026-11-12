@@ -83,5 +83,9 @@ test('SSH guidance is non-interactive and names the configured aliases', () => {
   assert.match(text, /BatchMode=yes/u);
   assert.match(text, /web1 \(deploy@10\.0\.0\.1:2222\), gpu/u);
   assert.match(text, /OpenSSH\\ssh\.exe/u);
+  assert.match(text, /DSH Go.*POSIX.*Windows/u);
+  assert.match(text, /scp -B/u);
+  assert.match(text, /sftp -b/u);
+  assert.match(text, /ExitOnForwardFailure=yes/u);
   assert.match(sshGuidance({ environment: 'wsl', client: '', hosts: [] }), /inside the distribution/u);
 });

@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import { applyRoot, installRoot } from '../lib/tool-state.mjs';
 import { RESET_COMMAND, STATE_EVENT, STATE_KEY } from '../lib/tool-catalog.mjs';
 
-function rootHost(stateOf = () => undefined) {
+function rootHost(stateOf = () => undefined, registry) {
   const commands = new Map();
   const records = [];
   const effects = [];
   const ctx = {
+    agentPresets: registry,
     effect: fn => effects.push(fn()),
     commands: { register: definition => commands.set(definition.name, definition) },
     sessionProjections: { register: async definition => ({ key: definition.key, summary: definition.wire.summary, stateOf, dispose() {} }) },
@@ -22,6 +23,21 @@ test('the root installer waits for the command and projection services', () => {
   assert.deepEqual(definition.inject, ['commands', 'sessionProjections']);
 });
 
+test('a reset follows the preset selected after a standard session was created', async () => {
+  let selected = 'deep-ptc';
+  const host = rootHost(undefined, { presetForSession: () => selected });
+  const session = { header: Object.freeze({ agentPreset: 'standard' }) };
+  await installRoot(host.ctx, host.append);
+  try {
+    const reset = host.commands.get(RESET_COMMAND);
+    assert.equal(reset.handler({ agent: { session } }).kind, 'success');
+    selected = 'standard';
+    assert.equal(reset.handler({ agent: { session } }).kind, 'error');
+    assert.equal(host.records.length, 1);
+  } finally {
+    for (const dispose of host.effects) dispose?.();
+  }
+});
 test('the root reset works in any Deep PTC conversation by persisting a new epoch', async () => {
   const blocked = [{ name: 'bad_tool', provider: 'example-plugin', kind: 'failure' }];
   const host = rootHost(() => ({ v: 1, epoch: 3, blocked, report: null }));

@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Deep PTC Mode",
-    "description": "DeepSeek Harness agent mode with interruptible background jobs, selectable shells, a right-sidebar panel for subagents, jobs, output files and SSH, and compatibility with official and third-party plugins. The interface follows DSH's Chinese or English language setting.",
+    "description": "Deep PTC builds on official PTC with interruptible jobs, selectable shells and a conversation-side panel. Use DrawAI, guizang-design and Agentero tools and skills on demand, with general SSH and DSH Go connection assistance. The bottom capsule toggles the panel; the UI follows DSH's Chinese or English setting.",
     "detail": "README.md"
   }
 }
