@@ -1,6 +1,6 @@
 # 插件协作与验证范围 / Plugin workflows and verification
 
-Deep PTC **1.9.3** · 核对日期：2026-11-12。接口验证使用 DSH Desktop 0.2.2-rc.2 的校验器与 SDK 渲染器、内嵌 Node 24.21.0。
+Deep PTC **1.9.4** · 核对日期：2026-11-13（界面插件）；插件协作部分核对于 2026-11-12。接口验证使用 DSH Desktop 0.2.2-rc.2 的校验器与 SDK 渲染器、内嵌 Node 24.21.0。
 
 ## 可以配合完成哪些工作
 
@@ -76,7 +76,7 @@ DSH Go 的连接资料是额外便利：按远端系统选择托管启动或连�
 
 ## English
 
-Deep PTC 1.9.3 can use DrawAI for diagram editing and SVG delivery, guizang-design for design/writing skills and library tools, and Agentero for paper/note tools. dsh-ops supplies compatible execution environments, DSH Go can combine screen tools with SSH connection assistance, and dsh-context can inspect skills through the current Agent's service.
+Deep PTC 1.9.4 can use DrawAI for diagram editing and SVG delivery, guizang-design for design/writing skills and library tools, and Agentero for paper/note tools. dsh-ops supplies compatible execution environments, DSH Go can combine screen tools with SSH connection assistance, and dsh-context can inspect skills through the current Agent's service.
 
 Twenty-six published DrawAI 0.4.6, guizang-design 0.1.4 and Agentero host 0.1.8 tool definitions passed isolated registration, host 0.2.2-rc.2 schema validation, Deep PTC discovery/selection and both host SDK renderers. Seven skill contents were readable. DrawAI read/edit/readback, SVG export and repeated stale-revision rejection followed by a fresh-revision write passed. The generic conflict-classification fix preserves unavailable-provider, defect and partial-effect handling. All 199 automated tests pass.
 

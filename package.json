@@ -1,6 +1,6 @@
 {
   "name": "dsh-deep-ptc-mode",
-  "version": "1.9.3",
+  "version": "1.9.4",
   "description": "Deep PTC for DeepSeek Harness: interruptible jobs, selectable shells, a side panel with clickable outputs and compact subagent rows, general SSH and DSH Go assistance, bilingual UI, and on-demand tools and skills for drawing, design and research.",
   "type": "module",
   "keywords": [

@@ -1,12 +1,12 @@
 # Deep PTC mode
 
-[中文](README.zh.md) · MIT · **1.9.3**
+[中文](README.zh.md) · MIT · **1.9.4**
 
 [Changelog](CHANGELOG.md) · [Test report](TEST_REPORT.md) · [Plugin workflows and verification](COMPATIBILITY.md)
 
 Deep PTC is a DeepSeek Harness agent mode with progress reports, clarifying questions, task-size planning, and interruptible background work. It builds on the installed official PTC preset with selectable shells, on-demand tools and skills, and a two-layer preset identity adapter for third-party plugins.
 
-The panel sits beside the conversation and shows the environment, subagents, jobs, output files, SSH connections and tool state. The capsule below the composer expands or collapses it. Deep PTC also has its own settings page. Visual effects are lightweight and start off when an appearance plugin is installed.
+The panel sits beside the conversation and shows the environment, subagents, jobs, output files, SSH connections and tool state. The panel width can be dragged. The capsule expands or collapses it; it sits below the composer by default and can move into the toolbar or be hidden. Deep PTC also has its own settings page. Visual effects are lightweight and start off when an appearance plugin is installed.
 
 ## Five basic problems
 
@@ -74,7 +74,8 @@ The Deep PTC mode label, settings, and conversation UI switch between Chinese an
   - **Output files**: files this conversation wrote or delivered, newest first; click to open the file in DSH's native preview. Three positions are available, with overflow folded into one of them. The rule matches DSH's own deliverables card and also counts files written from `run_code`.
   - **SSH connections**: hosts this conversation reached, with their outcome, and the host aliases in `~/.ssh/config`.
   - **Tool state**: the "Reload all tool states" button and, when present, the failed external tools.
-- **The capsule under the composer** shows the environment, subagent count and tool notices, and toggles the independent side panel. Saved 1.9.0 sidebar tabs show a migration hint.
+- **The capsule** shows the environment, subagent count and tool notices, and toggles the independent side panel. Its position is a setting (Settings → Deep PTC → Appearance): auto, below the composer, in the composer toolbar, or hidden. Auto uses the toolbar beside dsh-claude-style so a one-row composer stays one row. When hidden, open the panel from the Deep PTC tab on the right sidebar.
+- **Panel width**: drag the panel's left edge, or focus it and use the arrow keys (Shift for larger steps) or Home/End; a double click restores 280px. The width is remembered, from 240 to 640px, and a docked panel leaves at least 540px for the conversation.
 
 Visual effects apply **only while the conversation on screen is a Deep PTC session**: calmer light and dark colours and fonts, a hairline on the focused composer, a blue gradient send button, soft blue user bubbles, pointer spotlight, click ripple, a magnetic send button; while running, a glowing composer, a send-button ring and sparks rising above the composer.
 
@@ -214,10 +215,10 @@ A prompt changes the model's working tendency, not the real token limit or billi
 Requires Node `>=24` and DSH `>=0.2.2-rc.1`. The installer rejects the current package on DSH `0.2.1-rc.5` based on its manifest. macOS/Zsh checks cover configuration, argv and tool mounting.
 
 ```js
-plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.9.3" })
+plugin_manager({ action: "install_bundle", target: "dsh-deep-ptc-mode@1.9.4" })
 // Or from a local checkout or archive:
 plugin_manager({ action: "install_bundle", target: "C:\\path\\to\\dsh-deep-ptc-mode" })
-// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.9.3.tgz"
+// Or target: "C:\\path\\to\\dsh-deep-ptc-mode-1.9.4.tgz"
 ```
 
 Repository locator: `github:lishize20040802-rgb/dsh-deep-ptc-mode`. It installs content actually published there; a local upgrade does not publish to GitHub or npm.
