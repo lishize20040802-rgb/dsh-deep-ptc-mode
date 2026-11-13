@@ -352,16 +352,16 @@ test('the bottom capsule collapses the independent side panel without opening th
 
 test('the side panel follows conversation resizing and disappears under a fullscreen native sidebar', async () => {
   const document = fakeDocument();
-  let changed;
+  const observers = [];
   const f = fixture({ snapshot: windows(), browser: {
     document, MutationObserver: class {
-      constructor(callback) { changed = callback; }
+      constructor(callback) { observers.push(callback); }
       observe() {}
       disconnect() {}
     },
   } });
   const layoutChanged = async () => act(async () => {
-    changed([{ type: 'attributes', target: document.region }]);
+    observers.forEach(changed => changed([{ type: 'attributes', target: document.region }]));
     await new Promise(resolve => setTimeout(resolve, 5));
   });
   await withPanel(f, {}, async view => {
@@ -599,4 +599,138 @@ test('effects animate only opacity or transform while looping, and never take ke
   assert.doesNotMatch(source, /ctrlKey|metaKey/u, 'no keyboard shortcuts');
   assert.doesNotMatch(source, /setInterval\(update/u, 'no polling of the active session');
   assert.doesNotMatch(source, /getComputedStyle/u, 'host elements are found by their own attributes');
+});
+
+// Render the dock host and the toolbar capsule of one conversation together, as the composer does.
+async function withComposer(f, { preset = 'deep-ptc', sessionId = 'deep' } = {}, body) {
+  f.document.sessionId = sessionId;
+  const toolbar = f.slots.get('conversation.input.right#deep-ptc-capsule');
+  const props = { sessionId, ...f.dock.slot.inject(sessionId),
+    useProjection: key => key === 'agentPreset' ? preset : key === 'deepPtcTools' ? noTools : undefined,
+    useSessionStatus: select => select(new Map()), useSessions: select => select({}) };
+  let view;
+  await act(async () => { view = Renderer.create(React.createElement(React.Fragment, null,
+    React.createElement('div', { id: 'dock' }, React.createElement(f.dock.render, props)),
+    React.createElement('div', { id: 'toolbar' }, React.createElement(toolbar.render, props)))); });
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  const within = id => view.root.find(node => node.props?.id === id);
+  try { await body(view, within); } finally { await act(async () => view.unmount()); }
+}
+const capsules = node => node.findAll(child => child.type === 'button' && child.props?.className === 'dpt-capsule');
+const claudeStyled = () => {
+  const document = fakeDocument();
+  document.body = { hasAttribute: name => name === 'data-dsh-claude-style' };
+  return document;
+};
+
+test('the capsule stays below the composer by default and moves into the toolbar beside dsh-claude-style', async () => {
+  const plainHost = fixture({ snapshot: windows() });
+  assert.ok(plainHost.slots.has('conversation.input.right#deep-ptc-capsule'), 'the toolbar slot is registered');
+  await withComposer(plainHost, {}, async (view, within) => {
+    assert.equal(capsules(within('dock')).length, 1);
+    assert.equal(capsules(within('toolbar')).length, 0);
+    assert.equal(within('dock').findByProps({ className: 'dpt-capsule-row' }).props['data-placement'], 'dock');
+  });
+  const styled = fixture({ snapshot: windows(), browser: { document: claudeStyled() } });
+  await withComposer(styled, {}, async (view, within) => {
+    // The dock keeps its marker and the panel, but takes no row.
+    const row = within('dock').findByProps({ className: 'dpt-capsule-row' });
+    assert.equal(row.props['data-placement'], 'toolbar');
+    assert.equal(capsules(within('dock')).length, 0);
+    const [compact] = capsules(within('toolbar'));
+    assert.equal(compact.props['data-compact'], '');
+    assert.equal(view.root.findAllByProps({ className: 'dpt-sidecar' }).length, 1, 'wide conversations dock the panel');
+    await act(async () => compact.props.onClick());
+    assert.equal(view.root.findAllByProps({ className: 'dpt-sidecar' }).length, 0, 'the toolbar capsule collapses the same panel');
+    assert.equal(capsules(within('toolbar'))[0].props['aria-expanded'], false);
+    await act(async () => capsules(within('toolbar'))[0].props.onClick());
+    assert.equal(view.root.findAllByProps({ className: 'dpt-sidecar' }).length, 1);
+  });
+  await withComposer(styled, { preset: 'standard' }, async view => assert.equal(capsules(view.root).length, 0));
+});
+
+test('the capsule position is a remembered choice, and hidden leaves the sidebar tab as the way back', async () => {
+  const storage = new Map();
+  const f = fixture({ snapshot: windows(), storage });
+  const page = f.slots.get('settings.section#deep-ptc');
+  let settings;
+  await act(async () => { settings = Renderer.create(React.createElement(page.render, {})); });
+  const group = () => settings.root.findByProps({ role: 'radiogroup', 'aria-label': 'capsulePlacement' });
+  const option = label => group().findAll(node => node.props.role === 'radio' && node.props.children === label)[0];
+  try {
+    assert.equal(option('placementAuto').props['aria-checked'], true);
+    assert.match(text(settings), /placementAutoNow/u);
+    await act(async () => option('placementHidden').props.onClick());
+    assert.equal(storage.get('dsh-deep-ptc-mode:capsule-placement'), 'hidden');
+    // The tab type is listed on the new-tab guide while the capsule is hidden.
+    assert.deepEqual(plain(f.tabTypes.at(-1).guide.map(entry => entry.id)), ['deep-ptc']);
+    await withComposer(f, {}, async (view, within) => {
+      assert.equal(capsules(view.root).length, 0);
+      await act(async () => view.root.findByProps({ className: 'dpt-sidecar' }).findByProps({ 'aria-label': 'panelClose' }).props.onClick());
+      assert.equal(view.root.findAllByProps({ className: 'dpt-sidecar' }).length, 0);
+      let tab;
+      await act(async () => { tab = Renderer.create(React.createElement(f.legacy.render, { sessionId: 'deep' })); });
+      assert.match(text(tab), /panelMovedHidden/u);
+      await act(async () => tab.root.findByType('button').props.onClick());
+      assert.equal(view.root.findAllByProps({ className: 'dpt-sidecar' }).length, 1, 'the tab button reopens the panel');
+      await act(async () => tab.unmount());
+      assert.equal(within('dock').findByProps({ className: 'dpt-capsule-row' }).props['data-placement'], 'hidden');
+    });
+    await act(async () => option('placementDock').props.onClick());
+    assert.deepEqual(plain(f.tabTypes.at(-1).guide), []);
+  } finally { await act(async () => settings.unmount()); }
+  await withComposer(fixture({ snapshot: windows(), storage: new Map([['dsh-deep-ptc-mode:capsule-placement', 'toolbar']]) }), {},
+    async (view, within) => assert.equal(capsules(within('toolbar')).length, 1, 'a stored choice applies without compact themes'));
+});
+
+test('the side panel edge resizes the panel within bounds and remembers the width', async () => {
+  const storage = new Map();
+  const f = fixture({ snapshot: windows(), storage });
+  await withPanel(f, {}, async view => {
+    const sidecar = () => view.root.findByProps({ className: 'dpt-sidecar' });
+    const handle = () => view.root.findByProps({ role: 'separator' });
+    const settle = async () => act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); });
+    assert.equal(sidecar().props.style.width, 280);
+    assert.equal(handle().props['aria-valuemax'], 640, 'room 1200 leaves 540 for the conversation, capped at 640');
+    await act(async () => handle().props.onKeyDown({ key: 'ArrowLeft', shiftKey: false, preventDefault() {} }));
+    await settle();
+    assert.equal(sidecar().props.style.width, 296);
+    assert.equal(storage.get('dsh-deep-ptc-mode:side-panel-width'), '296');
+    // Dragging the left edge leftwards widens the panel; the release is what gets remembered.
+    const listeners = {};
+    const target = { addEventListener: (type, fn) => { listeners[type] = fn; }, removeEventListener: type => { delete listeners[type]; }, setPointerCapture() {} };
+    await act(async () => handle().props.onPointerDown({ button: 0, clientX: 900, pointerId: 1, currentTarget: target, preventDefault() {} }));
+    await act(async () => listeners.pointermove({ clientX: 700 }));
+    await settle();
+    assert.equal(sidecar().props.style.width, 496);
+    assert.equal(storage.get('dsh-deep-ptc-mode:side-panel-width'), '296', 'not written while dragging');
+    await act(async () => listeners.pointermove({ clientX: 0 }));
+    await act(async () => listeners.pointerup({}));
+    await settle();
+    assert.equal(sidecar().props.style.width, 640, 'clamped to the room left for the conversation');
+    assert.equal(storage.get('dsh-deep-ptc-mode:side-panel-width'), '640');
+    assert.equal(Object.keys(listeners).length, 0, 'the drag listeners are removed on release');
+    await act(async () => handle().props.onDoubleClick());
+    await settle();
+    assert.equal(sidecar().props.style.width, 280);
+  });
+  // The remembered width shrinks to fit a smaller room instead of covering the conversation.
+  const small = fixture({ snapshot: windows(), storage: new Map([['dsh-deep-ptc-mode:side-panel-width', '600']]) });
+  small.document.width = 900;
+  await withPanel(small, {}, async view => {
+    assert.equal(view.root.findByProps({ className: 'dpt-sidecar' }).props.style.width, 360);
+  });
+});
+
+test('a widget pinned to the bottom-right corner leaves the panel bottom clear', async () => {
+  const document = fakeDocument();
+  const base = document.querySelectorAll;
+  document.querySelectorAll = selector => selector === '.dshwv-root .dshwv-img'
+    ? [{ getBoundingClientRect: () => ({ left: 1050, right: 1200, top: 650, bottom: 800, width: 150, height: 150 }) }] : base(selector);
+  await withPanel(fixture({ snapshot: windows(), browser: { document } }), {}, async view => {
+    assert.equal(view.root.findByProps({ className: 'dpt-sidecar' }).props.style['--dpt-inset-bottom'], '150px');
+  });
+  await withPanel(fixture({ snapshot: windows() }), {}, async view => {
+    assert.equal(view.root.findByProps({ className: 'dpt-sidecar' }).props.style['--dpt-inset-bottom'], undefined);
+  });
 });

@@ -37,6 +37,33 @@ DSH Go 的连接资料是额外便利：按远端系统选择托管启动或连�
 
 外观重叠时，可关闭 Deep PTC 额外界面特效，必要时收起对话侧边面板。关闭特效不修改其他插件的工具注册与执行方式。
 
+### 界面插件（关闭特效后）
+
+不为其他界面插件单独适配主题。目标是：关闭 Deep PTC 界面特效后，Deep PTC 的胶囊、侧边面板和按钮不变形、不错位。特效关闭时，`body[data-dpt-ui]` 不挂载，所有特效规则和指针、键盘监听都不生效。保留的只有 `.dpt-*` 命名空间内的胶囊、侧边面板（`position:fixed; z-index:20`）和 Skill 卡片。
+
+2026-11-13 按 GitHub `dsh-plugin` 话题的 star 数，选取主要功能为网页界面的前 10 个插件，对 npm/GitHub 发布包做静态核对（未安装、未执行）：
+
+| 插件 | 核对版本 | 关闭特效后的情况 |
+| --- | --- | --- |
+| DeepSeek-Balance-Whale-Widget | 0.4.2 | 鲸鱼固定在窗口右下角，层级高，会盖住侧边面板底部的按钮。**已处理**：面板正文按重叠高度留出底部空间 |
+| dsh-wallpaper-engine | 1.4.2 | 只改背景与玻璃效果，不改 Deep PTC 控件；面板沿用宿主背景变量 |
+| dsh-pet | 0.4.8 | 独立 Electron 窗口，不进入网页 DOM |
+| DSH-better-sidebar | 0.32.1 | 底部工作台压缩对话列高度；面板按对话区实际尺寸测量，会跟随 |
+| dsh-context | 0.84.1 | 使用右侧栏页签与 `conversation.input.overlay`，与 Deep PTC 控件无重叠 |
+| dsh-deep-whale（皮肤管理器） | 0.1.9 | 通过宿主变量换肤；面板使用同一组变量 |
+| dsh-genui | 0.16.0 | 在回复内渲染组件，并使用 `conversation.input.dock`（输入框上方） |
+| dsh-startup-screen | 1.3.0 | 启动遮罩层级 2147483000，高于面板，仅在启动时出现 |
+| dsh-ads | 0.1.4 | 弹窗层级高于面板，属该插件的设计 |
+| dsh-synapse | 0.5.7 | 画布工作区层级 100/200，高于面板 |
+| dsh-claude-style（议题 #16） | 0.21.0 | 输入框收成一行后，胶囊会单独占一行。**已处理**：胶囊移入工具栏槽位 `conversation.input.right`，见下 |
+
+胶囊位置在「设置 → 深度 PTC → 外观」中调整：
+
+- **自动**（默认）：检测到 dsh-claude-style 时放进工具栏，否则放在输入框下方。
+- **输入框下方** / **工具栏** / **隐藏**：手动指定。
+
+选择「隐藏」时，右侧栏的新建页签引导会列出「深度 PTC」页签，可从页签里的按钮打开面板。dsh-cost-meter 同样占用 `composer.dock`，两者各占一行，不会重叠。
+
 本版没有为这些插件增加运行时依赖、轮询、固定常驻工具清单或每款插件专属提示词。只有用户选择 Deep PTC 的会话使用其适配逻辑；第三方自身的权限、沙箱和运行条件仍生效。
 
 ## 验证与来源
@@ -52,5 +79,7 @@ DSH Go 的连接资料是额外便利：按远端系统选择托管启动或连�
 Deep PTC 1.9.3 can use DrawAI for diagram editing and SVG delivery, guizang-design for design/writing skills and library tools, and Agentero for paper/note tools. dsh-ops supplies compatible execution environments, DSH Go can combine screen tools with SSH connection assistance, and dsh-context can inspect skills through the current Agent's service.
 
 Twenty-six published DrawAI 0.4.6, guizang-design 0.1.4 and Agentero host 0.1.8 tool definitions passed isolated registration, host 0.2.2-rc.2 schema validation, Deep PTC discovery/selection and both host SDK renderers. Seven skill contents were readable. DrawAI read/edit/readback, SVG export and repeated stale-revision rejection followed by a fresh-revision write passed. The generic conflict-classification fix preserves unavailable-provider, defect and partial-effect handling. All 199 automated tests pass.
+
+With the Deep PTC visual effects off, the ten most-starred web UI plugins on the `dsh-plugin` topic (checked statically on 2026-11-13) leave the capsule, side panel and buttons intact. Two cases are handled: the bottom-right whale widget no longer covers the panel's last controls, and with dsh-claude-style the capsule joins the composer toolbar (`conversation.input.right`) instead of taking its own row (#16). The capsule position (auto, below the composer, toolbar, hidden) is a viewer setting. When the capsule is hidden, the Deep PTC sidebar tab provides the way back to the panel.
 
 The table distinguishes those checks from prior dsh-ops evidence, automated DSH Go rules and source-only context inspection. Browser visuals, design generation, external paper CLI workflows, real phone/SSH connections, PNG and video rendering were not validated end to end. Plugins retain their own setup and authorization requirements. No runtime dependencies, polling or vendor-specific resident tool lists were added.

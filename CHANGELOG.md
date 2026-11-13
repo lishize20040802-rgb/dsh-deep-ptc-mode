@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- 胶囊位置可选：自动 / 输入框下方 / 工具栏 / 隐藏。「自动」检测到 dsh-claude-style 时把胶囊放进输入框工具栏（`conversation.input.right`），不再单独占一行（#16，也补上 #12 的第 3 点）。隐藏后，右侧栏新建页签引导中会出现「深度 PTC」，页签内的按钮可打开面板。
+- 侧边面板左边缘可拖动调整宽度，也可用方向键（Shift 加大步长）、Home/End 调整，双击恢复 280px。宽度按浏览器保存，并限制在 240–640px；停靠时对话区至少保留 540px。
+- 固定在右下角的悬浮挂件（dsh-whale-widget）不再遮住面板底部按钮：面板正文按重叠高度留出空间。
+- Capsule position: auto, below the composer, toolbar or hidden. Auto puts the capsule in the composer toolbar (`conversation.input.right`) beside dsh-claude-style instead of on its own row (#16; also #12 item 3). When the capsule is hidden, the Deep PTC tab appears on the sidebar's new-tab guide and opens the panel.
+- The side panel's left edge resizes it by dragging, arrow keys (Shift for larger steps) or Home/End; a double click restores 280px. The width is remembered per browser and kept within 240–640px, leaving at least 540px for a docked conversation.
+- A widget pinned to the bottom-right corner (dsh-whale-widget) no longer covers the panel's last controls.
+
 ## 1.9.3 — 2026-11-12
 
 - 侧边输出文件可点击，使用 DSH 原生文件资源接口按所属会话打开；兼容折叠列表、相对路径、Windows/UNC 路径及带中文和特殊字符的文件名，预览不可用时显示提示。
